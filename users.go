@@ -13,12 +13,14 @@ import (
 
 type UsersService interface {
     GetById(string) (*User, error)
-    GetByHref(string) (*User, error)
-    ListByHref(string, *ListOptions) ([]User, *ListParams, error)
-    Create(*User) (*User, error)
+    GetByLink(string) (*User, error)
+    ListByLink(string, *ListOptions) ([]User, *ListParams, error)
+    ListByDirectory(string, *ListOptions) ([]User, *ListParams, error)
+    CreateByDirectory(string,*User) (*User, error)
+    CreateByLink(string,*User) (*User, error)
     Update(*User) (*User, error)
     Delete(*User) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
 }
 
@@ -33,6 +35,7 @@ type User struct {
     Email           string          `json:"email,omitempty"`
     FirstName       string          `json:"firstName,omitempty"`
     Surname         string          `json:"surname,omitempty"`
+    Password        string          `json:"password,omitempty"`
     LastSuccessfulLogin       *time.Time       `json:"lastSuccessfulLogin,omitempty"`
     LastFailedLogin       *time.Time       `json:"lastFailedLogin,omitempty"`
     Custom          interface{}     `json:"custom,omitempty"`
@@ -57,19 +60,19 @@ func (d *User) Tenant() (*Tenant, error) {
 }
 
 func (d *User) Directory() (*Directory, error) {
-    return d.service.client.Directories.GetByHref(d.directory)
+    return d.service.client.Directories.GetByLink(d.directory)
 }
 
 func (d *User) Applications() ([]Application, *ListParams, error) {
-    return d.service.client.Applications.ListByHref(d.applications, nil)
+    return d.service.client.Applications.ListByLink(d.applications, nil)
 }
 
 func (d *User) Usergroups() ([]Usergroup, *ListParams, error) {
-    return d.service.client.Usergroups.ListByHref(d.usergroups, nil)
+    return d.service.client.Usergroups.ListByLink(d.usergroups, nil)
 }
 
 func (d *User) Memberships() ([]Membership, *ListParams, error) {
-    return d.service.client.Memberships.ListByHref(d.memberships, nil)
+    return d.service.client.Memberships.ListByLink(d.memberships, nil)
 }
 
 // Save updates application by calling Update() on service under the hood
@@ -99,10 +102,10 @@ func (s *UsersServiceOp) GetById(id string) (*User, error) {
     endpoint := "users/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint)
 }
 
-func (s *UsersServiceOp) GetByHref(endpoint string) (*User, error) {
+func (s *UsersServiceOp) GetByLink(endpoint string) (*User, error) {
     resp, err := s.client.request("GET", endpoint, nil)
     if err != nil {
         return nil, err
@@ -120,7 +123,12 @@ func (s *UsersServiceOp) GetByHref(endpoint string) (*User, error) {
     return obj, nil
 }
 
-func (s *UsersServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]User, *ListParams, error) {
+func (s *UsersServiceOp) ListByDirectory(id string, lo *ListOptions) ([]User, *ListParams, error) {
+    endpoint := fmt.Sprintf("directories/%s/users", id)
+    return s.ListByLink(endpoint, lo)
+}
+
+func (s *UsersServiceOp) ListByLink(endpoint string, lo *ListOptions) ([]User, *ListParams, error) {
     if lo == nil {
         lo = &ListOptions {
             Page: 1,
@@ -192,9 +200,12 @@ func (s *UsersServiceOp) Update(t *User) (*User, error) {
     return obj, nil
 }
 
-func (s *UsersServiceOp) Create(dir *User) (*User, error) {
-    endpoint := fmt.Sprintf("tenants/%s/users", s.client.tenantId)
+func (s *UsersServiceOp) CreateByDirectory(id string, dir *User) (*User, error) {
+    endpoint := fmt.Sprintf("directories/%s/users", id)
+    return s.CreateByLink(endpoint, dir)
+}
 
+func (s *UsersServiceOp) CreateByLink(endpoint string, dir *User) (*User, error) {
     dir.CreatedAt = nil
     dir.UpdatedAt = nil
     dir.Href = ""
@@ -225,17 +236,17 @@ func (s *UsersServiceOp) Create(dir *User) (*User, error) {
 
 // Delete removes application
 func (s *UsersServiceOp) Delete(t *User) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
 // Delete removes application by ID
 func (s *UsersServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("users/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
 // Delete removes application by link
-func (s *UsersServiceOp) DeleteByHref(endpoint string) (error) {
+func (s *UsersServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

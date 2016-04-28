@@ -12,12 +12,12 @@ import (
 
 type ProductsService interface {
     GetById(string) (*Product, error)
-    GetByHref(string) (*Product, error)
+    GetByLink(string) (*Product, error)
     List(*ListOptions) ([]Product, *ListParams, error)
     Create(*Product) (*Product, error)
     Update(*Product) (*Product, error)
     Delete(*Product) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
 }
 
@@ -79,7 +79,7 @@ func (d *Product) Tenant() (*Tenant, error) {
 }
 
 func (d *Product) Devices() ([]Device, *ListParams, error) {
-    return d.service.client.Devices.ListByHref(d.devices, nil)
+    return d.service.client.Devices.ListByLink(d.devices, nil)
 }
 
 // Save updates tenant by calling Update() on service under the hood
@@ -100,10 +100,10 @@ func (s *ProductsServiceOp) GetById(id string) (*Product, error) {
     endpoint := "products/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint)
 }
 
-func (s *ProductsServiceOp) GetByHref(id string) (*Product, error) {
+func (s *ProductsServiceOp) GetByLink(id string) (*Product, error) {
     resp, err := s.client.request("GET", id, nil)
     if err != nil {
         return nil, err
@@ -226,17 +226,17 @@ func (s *ProductsServiceOp) Create(dir *Product) (*Product, error) {
 
 // Delete removes application
 func (s *ProductsServiceOp) Delete(t *Product) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
 // Delete removes application by ID
 func (s *ProductsServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("products/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
 // Delete removes application by link
-func (s *ProductsServiceOp) DeleteByHref(endpoint string) (error) {
+func (s *ProductsServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

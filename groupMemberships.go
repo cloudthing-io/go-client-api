@@ -12,11 +12,11 @@ import (
 
 type GroupMembershipsService interface {
     GetById(string) (*GroupMembership, error)
-    GetByHref(string) (*GroupMembership, error)
-    ListByHref(string, *ListOptions) ([]GroupMembership, *ListParams, error)
+    GetByLink(string) (*GroupMembership, error)
+    ListByLink(string, *ListOptions) ([]GroupMembership, *ListParams, error)
     Create(*GroupMembership) (*GroupMembership, error)
     Delete(*GroupMembership) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
 }
 
@@ -41,15 +41,15 @@ type GroupMemberships struct{
 }
 /*
 func (d *GroupMembership) Application() (*Application, error) {
-    return d.service.client.Applications.GetByHref(d.application)
+    return d.service.client.Applications.GetByLink(d.application)
 }*/
 
 func (d *GroupMembership) Device() (*Device, error) {
-    return d.service.client.Devices.GetByHref(d.device)
+    return d.service.client.Devices.GetByLink(d.device)
 }
 
 func (d *GroupMembership) Group() (*Group, error) {
-    return d.service.client.Groups.GetByHref(d.group)
+    return d.service.client.Groups.GetByLink(d.group)
 }
 
 // GetById retrieves directory
@@ -57,10 +57,10 @@ func (s *GroupMembershipsServiceOp) GetById(id string) (*GroupMembership, error)
     endpoint := "groupMemberships/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint)
 }
 
-func (s *GroupMembershipsServiceOp) GetByHref(endpoint string) (*GroupMembership, error) {
+func (s *GroupMembershipsServiceOp) GetByLink(endpoint string) (*GroupMembership, error) {
     resp, err := s.client.request("GET", endpoint, nil)
     if err != nil {
         return nil, err
@@ -77,7 +77,7 @@ func (s *GroupMembershipsServiceOp) GetByHref(endpoint string) (*GroupMembership
     obj.service = s
     return obj, nil
 }
-func (s *GroupMembershipsServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]GroupMembership, *ListParams, error) {
+func (s *GroupMembershipsServiceOp) ListByLink(endpoint string, lo *ListOptions) ([]GroupMembership, *ListParams, error) {
     if lo == nil {
         lo = &ListOptions {
             Page: 1,
@@ -151,17 +151,17 @@ func (s *GroupMembershipsServiceOp) Create(dir *GroupMembership) (*GroupMembersh
 
 // Delete removes application
 func (s *GroupMembershipsServiceOp) Delete(t *GroupMembership) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
 // Delete removes application by ID
 func (s *GroupMembershipsServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("groupMemberships/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
 // Delete removes application by link
-func (s *GroupMembershipsServiceOp) DeleteByHref(endpoint string) (error) {
+func (s *GroupMembershipsServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

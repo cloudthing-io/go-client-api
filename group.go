@@ -12,12 +12,12 @@ import (
 
 type GroupsService interface {
     GetById(string) (*Group, error)
-    GetByHref(string) (*Group, error)
-    ListByHref(string, *ListOptions) ([]Group, *ListParams, error)
+    GetByLink(string) (*Group, error)
+    ListByLink(string, *ListOptions) ([]Group, *ListParams, error)
     Create(*Group) (*Group, error)
     Update(*Group) (*Group, error)
     Delete(*Group) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
 }
 
@@ -52,15 +52,15 @@ func (d *Group) Tenant() (*Tenant, error) {
 }
 
 func (d *Group) Application() (*Application, error) {
-    return d.service.client.Applications.GetByHref(d.application)
+    return d.service.client.Applications.GetByLink(d.application)
 }
 
 func (d *Group) Cluster() (*Cluster, error) {
-    return d.service.client.Clusters.GetByHref(d.cluster)
+    return d.service.client.Clusters.GetByLink(d.cluster)
 }
 
 func (d *Group) Devices() ([]Device, *ListParams, error) {
-    return d.service.client.Devices.ListByHref(d.devices, nil)
+    return d.service.client.Devices.ListByLink(d.devices, nil)
 }
 
 // Save updates tenant by calling Update() on service under the hood
@@ -81,10 +81,10 @@ func (s *GroupsServiceOp) GetById(id string) (*Group, error) {
     endpoint := "groups/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint)
 }
 
-func (s *GroupsServiceOp) GetByHref(endpoint string) (*Group, error) {
+func (s *GroupsServiceOp) GetByLink(endpoint string) (*Group, error) {
     resp, err := s.client.request("GET", endpoint, nil)
     if err != nil {
         return nil, err
@@ -101,7 +101,7 @@ func (s *GroupsServiceOp) GetByHref(endpoint string) (*Group, error) {
     obj.service = s
     return obj, nil
 }
-func (s *GroupsServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]Group, *ListParams, error) {
+func (s *GroupsServiceOp) ListByLink(endpoint string, lo *ListOptions) ([]Group, *ListParams, error) {
     if lo == nil {
         lo = &ListOptions {
             Page: 1,
@@ -206,17 +206,17 @@ func (s *GroupsServiceOp) Create(dir *Group) (*Group, error) {
 
 // Delete removes application
 func (s *GroupsServiceOp) Delete(t *Group) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
 // Delete removes application by ID
 func (s *GroupsServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("groups/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
 // Delete removes application by link
-func (s *GroupsServiceOp) DeleteByHref(endpoint string) (error) {
+func (s *GroupsServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

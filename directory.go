@@ -12,12 +12,12 @@ import (
 
 type DirectoriesService interface {
     GetById(string) (*Directory, error)
-    GetByHref(string) (*Directory, error)
+    GetByLink(string) (*Directory, error)
     List(*ListOptions) ([]Directory, *ListParams, error)
     Create(*Directory) (*Directory, error)
     Update(*Directory) (*Directory, error)
     Delete(*Directory) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
 }
 
@@ -29,7 +29,7 @@ type DirectoriesServiceOp struct {
 type Directory struct {
     ModelBase
     Name            string          `json:"name,omitempty"`
-    Official        bool            `json:"official,omitempty"`
+    Official        *bool            `json:"official,omitempty"`
     Description     string          `json:"description,omitempty"`
     Custom          interface{}     `json:"custom,omitempty"`
 
@@ -52,15 +52,15 @@ func (d *Directory) Tenant() (*Tenant, error) {
 }
 
 func (d *Directory) Users() ([]User, *ListParams, error) {
-    return d.service.client.Users.ListByHref(d.users, nil)
+    return d.service.client.Users.ListByLink(d.users, nil)
 }
 
 func (d *Directory) Usergroups() ([]Usergroup, *ListParams, error) {
-    return d.service.client.Usergroups.ListByHref(d.usergroups, nil)
+    return d.service.client.Usergroups.ListByLink(d.usergroups, nil)
 }
 
 func (d *Directory) Applications() ([]Application, *ListParams, error) {
-    return d.service.client.Applications.ListByHref(d.applications, nil)
+    return d.service.client.Applications.ListByLink(d.applications, nil)
 }
 
 
@@ -82,11 +82,11 @@ func (s *DirectoriesServiceOp) GetById(id string) (*Directory, error) {
     endpoint := "directories/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint)
 }
 
 
-func (s *DirectoriesServiceOp) GetByHref(endpoint string) (*Directory, error) {
+func (s *DirectoriesServiceOp) GetByLink(endpoint string) (*Directory, error) {
     resp, err := s.client.request("GET", endpoint, nil)
     if err != nil {
         return nil, err
@@ -208,17 +208,17 @@ func (s *DirectoriesServiceOp) Create(dir *Directory) (*Directory, error) {
 
 // Delete removes application
 func (s *DirectoriesServiceOp) Delete(t *Directory) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
 // Delete removes application by ID
 func (s *DirectoriesServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("directories/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
 // Delete removes application by link
-func (s *DirectoriesServiceOp) DeleteByHref(endpoint string) (error) {
+func (s *DirectoriesServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

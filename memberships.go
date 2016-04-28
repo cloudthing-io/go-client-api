@@ -12,11 +12,11 @@ import (
 
 type MembershipsService interface {
     GetById(string) (*Membership, error)
-    GetByHref(string) (*Membership, error)
-    ListByHref(string, *ListOptions) ([]Membership, *ListParams, error)
+    GetByLink(string) (*Membership, error)
+    ListByLink(string, *ListOptions) ([]Membership, *ListParams, error)
     Create(*Membership) (*Membership, error)
     Delete(*Membership) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
 }
 
@@ -41,11 +41,11 @@ type Memberships struct{
 }
 
 func (d *Membership) User() (*User, error) {
-    return d.service.client.Users.GetByHref(d.user)
+    return d.service.client.Users.GetByLink(d.user)
 }
 
 func (d *Membership) Usergroup() (*Usergroup, error) {
-    return d.service.client.Usergroups.GetByHref(d.usergroup)
+    return d.service.client.Usergroups.GetByLink(d.usergroup)
 }
 
 // GetById retrieves directory
@@ -53,10 +53,10 @@ func (s *MembershipsServiceOp) GetById(id string) (*Membership, error) {
     endpoint := "memberships/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint)
 }
 
-func (s *MembershipsServiceOp) GetByHref(endpoint string) (*Membership, error) {
+func (s *MembershipsServiceOp) GetByLink(endpoint string) (*Membership, error) {
     resp, err := s.client.request("GET", endpoint, nil)
     if err != nil {
         return nil, err
@@ -73,7 +73,7 @@ func (s *MembershipsServiceOp) GetByHref(endpoint string) (*Membership, error) {
     obj.service = s
     return obj, nil
 }
-func (s *MembershipsServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]Membership, *ListParams, error) {
+func (s *MembershipsServiceOp) ListByLink(endpoint string, lo *ListOptions) ([]Membership, *ListParams, error) {
     if lo == nil {
         lo = &ListOptions {
             Page: 1,
@@ -146,17 +146,17 @@ func (s *MembershipsServiceOp) Create(dir *Membership) (*Membership, error) {
 
 // Delete removes application
 func (s *MembershipsServiceOp) Delete(t *Membership) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
 // Delete removes application by ID
 func (s *MembershipsServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("memberships/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
 // Delete removes application by link
-func (s *MembershipsServiceOp) DeleteByHref(endpoint string) (error) {
+func (s *MembershipsServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

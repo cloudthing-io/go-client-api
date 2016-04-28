@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"bytes"
 	"net/http"
+    "github.com/jinzhu/copier"
 )
 
 // TenantService is an interafce for interacting with Tenants endpoints of CloudThing API
@@ -13,11 +14,24 @@ import (
 type TenantService interface {
 	Get() (*Tenant, error)
     Update(*Tenant) (*Tenant, error)
+
+    get(*TenantResponse) (*Tenant, error)
 }
 
 // TenantServiceOp handles communication with Tenant related methods of API
 type TenantServiceOp struct {
 	client *Client
+}
+
+type TenantResponse struct {
+    ModelBase
+    ShortName       string          `json:"shortName,omitempty"`
+    Name            string          `json:"name,omitempty"`
+    Custom          map[string]interface{}     `json:"custom,omitempty"`
+
+    Directories     map[string]interface{}           `json:"directories,omitempty"`
+    Applications    map[string]interface{}`json:"applications,omitempty"`
+    Products        map[string]interface{}`json:"products,omitempty"`    
 }
 
 // Tenant represents an Organization (tenant) within CloudThing
@@ -26,27 +40,27 @@ type Tenant struct {
     ShortName       string          `json:"shortName,omitempty"`
     Name       		string          `json:"name,omitempty"`
     Custom          interface{}     `json:"custom,omitempty"`
-    
-    directories     string          `json:"directories,omitempty"`
-    applications    string          `json:"applications,omitempty"`
-    products        string          `json:"products,omitempty"`    
+
+    Directories     []Directory           `json:"directories,omitempty"`
+    Applications    []Application           `json:"applications,omitempty"`
+    Products        []Product           `json:"products,omitempty"`    
 
     // service for communication, internal use only
     service 		*TenantServiceOp `json:"-"` 
 }
 
 // Directories retrieves directories of current tenant
-func (t *Tenant) Directories() ([]Directory, *ListParams, error) {
+func (t *Tenant) GetDirectories() ([]Directory, *ListParams, error) {
     return t.service.client.Directories.List(nil)
 }
 
 // Directories retrieves directories of current tenant
-func (t *Tenant) Applications() ([]Application, *ListParams, error) {
+func (t *Tenant) GetApplications() ([]Application, *ListParams, error) {
     return t.service.client.Applications.List(nil)
 }
 
 // Products retrieves directories of current tenant
-func (t *Tenant) Products() ([]Product, *ListParams, error) {
+func (t *Tenant) GetProducts() ([]Product, *ListParams, error) {
     return t.service.client.Products.List(nil)
 }
 
@@ -90,11 +104,17 @@ func (s *TenantServiceOp) Get() (*Tenant, error) {
 	} else if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
 	}
-	tenant := &Tenant{}
+	tenant := &TenantResponse{}
 	dec := json.NewDecoder(resp.Body)
 	dec.Decode(tenant)
-	tenant.service = s
-	return tenant, nil
+    return s.get(tenant)
+}
+
+func (s *TenantServiceOp) get(t *TenantResponse) (*Tenant, error) {
+    obj := &Tenant{}
+    copier.Copy(obj, t)
+    obj.service = s
+    return obj, nil
 }
 
 // Update updates tenant

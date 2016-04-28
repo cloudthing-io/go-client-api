@@ -12,12 +12,12 @@ import (
 
 type ClustersService interface {
     GetById(string) (*Cluster, error)
-    GetByHref(string) (*Cluster, error)
-    ListByHref(string, *ListOptions) ([]Cluster, *ListParams, error)
+    GetByLink(string) (*Cluster, error)
+    ListByLink(string, *ListOptions) ([]Cluster, *ListParams, error)
     Create(*Cluster) (*Cluster, error)
     Update(*Cluster) (*Cluster, error)
     Delete(*Cluster) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
 }
 
@@ -54,23 +54,23 @@ func (d *Cluster) Tenant() (*Tenant, error) {
 }
 
 func (d *Cluster) Application() (*Application, error) {
-    return d.service.client.Applications.GetByHref(d.application)
+    return d.service.client.Applications.GetByLink(d.application)
 }
 
 func (d *Cluster) Groups() ([]Group, *ListParams, error) {
-    return d.service.client.Groups.ListByHref(d.groups, nil)
+    return d.service.client.Groups.ListByLink(d.groups, nil)
 }
 
 func (d *Cluster) Memberships() ([]Membership, *ListParams, error) {
-    return d.service.client.Memberships.ListByHref(d.memberships, nil)
+    return d.service.client.Memberships.ListByLink(d.memberships, nil)
 }
 
 func (d *Cluster) Users() ([]User, *ListParams, error) {
-    return d.service.client.Users.ListByHref(d.users, nil)
+    return d.service.client.Users.ListByLink(d.users, nil)
 }
 
 func (d *Cluster) Devices() ([]Device, *ListParams, error) {
-    return d.service.client.Devices.ListByHref(d.devices, nil)
+    return d.service.client.Devices.ListByLink(d.devices, nil)
 }
 
 // Save updates tenant by calling Update() on service under the hood
@@ -100,10 +100,10 @@ func (s *ClustersServiceOp) GetById(id string) (*Cluster, error) {
     endpoint := "clusters/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint)
 }
 
-func (s *ClustersServiceOp) GetByHref(endpoint string) (*Cluster, error) {
+func (s *ClustersServiceOp) GetByLink(endpoint string) (*Cluster, error) {
     resp, err := s.client.request("GET", endpoint, nil)
     if err != nil {
         return nil, err
@@ -120,7 +120,7 @@ func (s *ClustersServiceOp) GetByHref(endpoint string) (*Cluster, error) {
     obj.service = s
     return obj, nil
 }
-func (s *ClustersServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]Cluster, *ListParams, error) {
+func (s *ClustersServiceOp) ListByLink(endpoint string, lo *ListOptions) ([]Cluster, *ListParams, error) {
     if lo == nil {
         lo = &ListOptions {
             Page: 1,
@@ -225,17 +225,17 @@ func (s *ClustersServiceOp) Create(dir *Cluster) (*Cluster, error) {
 
 // Delete removes application
 func (s *ClustersServiceOp) Delete(t *Cluster) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
 // Delete removes application by ID
 func (s *ClustersServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("clusters/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
 // Delete removes application by link
-func (s *ClustersServiceOp) DeleteByHref(endpoint string) (error) {
+func (s *ClustersServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

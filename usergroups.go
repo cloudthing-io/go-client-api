@@ -12,12 +12,12 @@ import (
 
 type UsergroupsService interface {
     GetById(string) (*Usergroup, error)
-    GetByHref(string) (*Usergroup, error)
-    ListByHref(string, *ListOptions) ([]Usergroup, *ListParams, error)
+    GetByLink(string) (*Usergroup, error)
+    ListByLink(string, *ListOptions) ([]Usergroup, *ListParams, error)
     Create(*Usergroup) (*Usergroup, error)
     Update(*Usergroup) (*Usergroup, error)
     Delete(*Usergroup) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
 }
 
@@ -40,7 +40,7 @@ type Usergroup struct {
     service         *UsergroupsServiceOp `json:"-"` 
 }
 
-type Userusergroups struct{
+type Usergroups struct{
     ListParams
     Items           []Usergroup     `json:"items"`
 }
@@ -50,15 +50,15 @@ func (d *Usergroup) Tenant() (*Tenant, error) {
 }
 
 func (d *Usergroup) Directory() (*Directory, error) {
-    return d.service.client.Directories.GetByHref(d.directory)
+    return d.service.client.Directories.GetByLink(d.directory)
 }
 
 func (d *Usergroup) Users() ([]User, *ListParams, error) {
-    return d.service.client.Users.ListByHref(d.users, nil)
+    return d.service.client.Users.ListByLink(d.users, nil)
 }
 
 func (d *Usergroup) Memberships() ([]Membership, *ListParams, error) {
-    return d.service.client.Memberships.ListByHref(d.memberships, nil)
+    return d.service.client.Memberships.ListByLink(d.memberships, nil)
 }
 
 // Save updates tenant by calling Update() on service under the hood
@@ -88,10 +88,10 @@ func (s *UsergroupsServiceOp) GetById(id string) (*Usergroup, error) {
     endpoint := "usergroups/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint)
 }
 
-func (s *UsergroupsServiceOp) GetByHref(endpoint string) (*Usergroup, error) {
+func (s *UsergroupsServiceOp) GetByLink(endpoint string) (*Usergroup, error) {
     resp, err := s.client.request("GET", endpoint, nil)
     if err != nil {
         return nil, err
@@ -108,7 +108,7 @@ func (s *UsergroupsServiceOp) GetByHref(endpoint string) (*Usergroup, error) {
     obj.service = s
     return obj, nil
 }
-func (s *UsergroupsServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]Usergroup, *ListParams, error) {
+func (s *UsergroupsServiceOp) ListByLink(endpoint string, lo *ListOptions) ([]Usergroup, *ListParams, error) {
     if lo == nil {
         lo = &ListOptions {
             Page: 1,
@@ -127,7 +127,7 @@ func (s *UsergroupsServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]Us
     if resp.StatusCode != http.StatusOK {
         return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Userusergroups{}
+    obj := &Usergroups{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
 
@@ -213,17 +213,17 @@ func (s *UsergroupsServiceOp) Create(dir *Usergroup) (*Usergroup, error) {
 
 // Delete removes application
 func (s *UsergroupsServiceOp) Delete(t *Usergroup) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
 // Delete removes application by ID
 func (s *UsergroupsServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("usergroups/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
 // Delete removes application by link
-func (s *UsergroupsServiceOp) DeleteByHref(endpoint string) (error) {
+func (s *UsergroupsServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

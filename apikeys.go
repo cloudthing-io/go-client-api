@@ -12,12 +12,13 @@ import (
 
 type ApikeysService interface {
     GetById(string) (*Apikey, error)
-    GetByHref(string) (*Apikey, error)
-    ListByHref(string, *ListOptions) ([]Apikey, *ListParams, error)
+    GetByLink(string) (*Apikey, error)
+    ListByLink(string, *ListOptions) ([]Apikey, *ListParams, error)
+    List(*ListOptions) ([]Apikey, *ListParams, error)
     Create(*Apikey) (*Apikey, error)
     Update(*Apikey) (*Apikey, error)
     Delete(*Apikey) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
 }
 
@@ -52,7 +53,7 @@ func (d *Apikey) Tenant() (*Tenant, error) {
 }
 
 func (d *Apikey) Applications() ([]Application, *ListParams, error) {
-    return d.service.client.Applications.ListByHref(d.applications, nil)
+    return d.service.client.Applications.ListByLink(d.applications, nil)
 }
 
 // Save updates application by calling Update() on service under the hood
@@ -82,10 +83,10 @@ func (s *ApikeysServiceOp) GetById(id string) (*Apikey, error) {
     endpoint := "apikeys/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint)
 }
 
-func (s *ApikeysServiceOp) GetByHref(endpoint string) (*Apikey, error) {
+func (s *ApikeysServiceOp) GetByLink(endpoint string) (*Apikey, error) {
     resp, err := s.client.request("GET", endpoint, nil)
     if err != nil {
         return nil, err
@@ -103,7 +104,12 @@ func (s *ApikeysServiceOp) GetByHref(endpoint string) (*Apikey, error) {
     return obj, nil
 }
 
-func (s *ApikeysServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]Apikey, *ListParams, error) {
+func (s *ApikeysServiceOp) List(lo *ListOptions) ([]Apikey, *ListParams, error) {
+    endpoint := fmt.Sprintf("apikeys")
+    return s.ListByLink(endpoint, lo)
+}
+
+func (s *ApikeysServiceOp) ListByLink(endpoint string, lo *ListOptions) ([]Apikey, *ListParams, error) {
     if lo == nil {
         lo = &ListOptions {
             Page: 1,
@@ -176,7 +182,7 @@ func (s *ApikeysServiceOp) Update(t *Apikey) (*Apikey, error) {
 }
 
 func (s *ApikeysServiceOp) Create(dir *Apikey) (*Apikey, error) {
-    endpoint := fmt.Sprintf("tenants/%s/apikeys", s.client.tenantId)
+    endpoint := fmt.Sprintf("apikeys")
 
     dir.CreatedAt = nil
     dir.UpdatedAt = nil
@@ -208,17 +214,17 @@ func (s *ApikeysServiceOp) Create(dir *Apikey) (*Apikey, error) {
 
 // Delete removes application
 func (s *ApikeysServiceOp) Delete(t *Apikey) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
 // Delete removes application by ID
 func (s *ApikeysServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("apikeys/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
 // Delete removes application by link
-func (s *ApikeysServiceOp) DeleteByHref(endpoint string) (error) {
+func (s *ApikeysServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

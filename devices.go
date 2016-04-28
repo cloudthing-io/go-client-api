@@ -12,13 +12,15 @@ import (
 
 type DevicesService interface {
     GetById(string) (*Device, error)
-    GetByHref(string) (*Device, error)
+    GetByLink(string) (*Device, error)
     List(*ListOptions) ([]Device, *ListParams, error)
-    ListByHref(string, *ListOptions) ([]Device, *ListParams, error)
-    Create(*Device) (*Device, error)
+    ListByLink(string, *ListOptions) ([]Device, *ListParams, error)
+    ListByProduct(string, *ListOptions) ([]Device, *ListParams, error)
+    CreateByLink(string, *Device) (*Device, error)
+    CreateByProduct(string, *Device) (*Device, error)
     Update(*Device) (*Device, error)
     Delete(*Device) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
 }
 
@@ -61,23 +63,23 @@ func (d *Device) Tenant() (*Tenant, error) {
 }
 
 func (d *Device) Product() (*Product, error) {
-    return d.service.client.Products.GetByHref(d.product)
+    return d.service.client.Products.GetByLink(d.product)
 }
 
 func (d *Device) Clusters() ([]Cluster, *ListParams, error) {
-    return d.service.client.Clusters.ListByHref(d.clusters, nil)
+    return d.service.client.Clusters.ListByLink(d.clusters, nil)
 }
 
 func (d *Device) Groups() ([]Group, *ListParams, error) {
-    return d.service.client.Groups.ListByHref(d.groups, nil)
+    return d.service.client.Groups.ListByLink(d.groups, nil)
 }
 
 func (d *Device) ClusterMemberships() ([]ClusterMembership, *ListParams, error) {
-    return d.service.client.ClusterMemberships.ListByHref(d.clusterMemberships, nil)
+    return d.service.client.ClusterMemberships.ListByLink(d.clusterMemberships, nil)
 }
 
 func (d *Device) GroupMemberships() ([]GroupMembership, *ListParams, error) {
-    return d.service.client.GroupMemberships.ListByHref(d.groupMemberships, nil)
+    return d.service.client.GroupMemberships.ListByLink(d.groupMemberships, nil)
 }
 
 // Save updates tenant by calling Update() on service under the hood
@@ -98,10 +100,10 @@ func (s *DevicesServiceOp) GetById(id string) (*Device, error) {
     endpoint := "devices/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint)
 }
 
-func (s *DevicesServiceOp) GetByHref(endpoint string) (*Device, error) {
+func (s *DevicesServiceOp) GetByLink(endpoint string) (*Device, error) {
     resp, err := s.client.request("GET", endpoint, nil)
     if err != nil {
         return nil, err
@@ -122,10 +124,16 @@ func (s *DevicesServiceOp) GetByHref(endpoint string) (*Device, error) {
 func (s *DevicesServiceOp) List(lo *ListOptions) ([]Device, *ListParams, error) {
     endpoint := fmt.Sprintf("tenants/%s/devices", s.client.tenantId)
 
-    return s.ListByHref(endpoint, lo)
+    return s.ListByLink(endpoint, lo)
 }
 
-func (s *DevicesServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]Device, *ListParams, error) {
+func (s *DevicesServiceOp) ListByProduct(id string, lo *ListOptions) ([]Device, *ListParams, error) {
+    endpoint := fmt.Sprintf("products/%s/devices", id)
+
+    return s.ListByLink(endpoint, lo)
+}
+
+func (s *DevicesServiceOp) ListByLink(endpoint string, lo *ListOptions) ([]Device, *ListParams, error) {
     if lo == nil {
         lo = &ListOptions {
             Page: 1,
@@ -197,8 +205,13 @@ func (s *DevicesServiceOp) Update(t *Device) (*Device, error) {
     return obj, nil
 }
 
-func (s *DevicesServiceOp) Create(dir *Device) (*Device, error) {
-    endpoint := fmt.Sprintf("devices")
+func (s *DevicesServiceOp) CreateByProduct(id string, dir *Device) (*Device, error) {
+    endpoint := fmt.Sprintf("products/%s/devices", id)
+    return s.CreateByLink(endpoint, dir)
+}
+
+func (s *DevicesServiceOp) CreateByLink(endpoint string, dir *Device) (*Device, error) {
+    /*endpoint := fmt.Sprintf("devices")*/
 
     dir.CreatedAt = nil
     dir.UpdatedAt = nil
@@ -230,17 +243,17 @@ func (s *DevicesServiceOp) Create(dir *Device) (*Device, error) {
 
 // Delete removes application
 func (s *DevicesServiceOp) Delete(t *Device) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
 // Delete removes application by ID
 func (s *DevicesServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("devices/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
 // Delete removes application by link
-func (s *DevicesServiceOp) DeleteByHref(endpoint string) (error) {
+func (s *DevicesServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err
