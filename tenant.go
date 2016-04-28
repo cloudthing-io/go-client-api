@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"bytes"
 	"net/http"
-    "github.com/jinzhu/copier"
+    "github.com/borystomala/copier"
 )
 
 // TenantService is an interafce for interacting with Tenants endpoints of CloudThing API
@@ -13,7 +13,7 @@ import (
 
 type TenantService interface {
 	Get() (*Tenant, error)
-    Update(*Tenant) (*Tenant, error)
+    UpdateByLink(string, *TenantRequestUpdate) (*Tenant, error)
 
     get(*TenantResponse) (*Tenant, error)
 }
@@ -23,57 +23,81 @@ type TenantServiceOp struct {
 	client *Client
 }
 
-type TenantResponse struct {
-    ModelBase
-    ShortName       string          `json:"shortName,omitempty"`
-    Name            string          `json:"name,omitempty"`
-    Custom          map[string]interface{}     `json:"custom,omitempty"`
-
-    Directories     map[string]interface{}           `json:"directories,omitempty"`
-    Applications    map[string]interface{}`json:"applications,omitempty"`
-    Products        map[string]interface{}`json:"products,omitempty"`    
-}
-
 // Tenant represents an Organization (tenant) within CloudThing
 type Tenant struct {
     ModelBase
-    ShortName       string          `json:"shortName,omitempty"`
-    Name       		string          `json:"name,omitempty"`
-    Custom          interface{}     `json:"custom,omitempty"`
+    ShortName       string
+    Name       		string
+    Custom          interface{}
 
-    Directories     []Directory           `json:"directories,omitempty"`
-    Applications    []Application           `json:"applications,omitempty"`
-    Products        []Product           `json:"products,omitempty"`    
+    Directories     []Directory
+    Applications    []Application
+    Products        []Product   
+
+    // Links to related resources
+    directories      string
+    applications     string
+    products         string
 
     // service for communication, internal use only
-    service 		*TenantServiceOp `json:"-"` 
+    service 		*TenantServiceOp
+}
+
+type TenantResponse struct {
+    ModelBase
+    ShortName       string                  `json:"shortName,omitempty"`
+    Name            string                  `json:"name,omitempty"`
+    Custom          map[string]interface{}  `json:"custom,omitempty"`
+
+    Directories     map[string]interface{}  `json:"directories,omitempty"`
+    Applications    map[string]interface{}  `json:"applications,omitempty"`
+    Products        map[string]interface{}  `json:"products,omitempty"`    
+}
+
+type TenantRequestUpdate struct {
+    Name            string                  `json:"name,omitempty"`
+    Custom          map[string]interface{}  `json:"custom,omitempty"` 
+}
+
+type TenantRequestCreate struct {
+    Name            string                  `json:"name,omitempty"`
+    Custom          map[string]interface{}  `json:"custom,omitempty"` 
 }
 
 // Directories retrieves directories of current tenant
-func (t *Tenant) GetDirectories() ([]Directory, *ListParams, error) {
-    return t.service.client.Directories.List(nil)
+func (t *Tenant) DirectoriesLink() (bool, string) {
+    return (t.Directories != nil), t.directories
 }
 
 // Directories retrieves directories of current tenant
-func (t *Tenant) GetApplications() ([]Application, *ListParams, error) {
-    return t.service.client.Applications.List(nil)
+func (t *Tenant) ApplicationsLink() (bool, string) {
+    return (t.Applications != nil), t.applications
 }
 
 // Products retrieves directories of current tenant
-func (t *Tenant) GetProducts() ([]Product, *ListParams, error) {
-    return t.service.client.Products.List(nil)
+func (t *Tenant) ProductsLink() (bool, string) {
+    return (t.Products != nil), t.products
 }
 
-// Save updates tenant by calling Update() on service under the hood
+// Save is a helper method for updating tenant.
+// It calls UpdateByLink() on service under the hood.
 func (t *Tenant) Save() error {
-	tmp := *t
-
-    ten, err := t.service.Update(&tmp)
+    tmp := &TenantRequestUpdate{}
+    copier.Copy(tmp, t)
+    ten, err := t.service.UpdateByLink(t.Href, tmp)
     if err != nil {
-    	return err
+        return err
     }
 
+    tmpApplications := t.Applications
+    tmpDirectories := t.Directories
+    tmpProducts := t.Products
+
     *t = *ten
+    t.Applications = tmpApplications
+    t.Directories = tmpDirectories
+    t.Products = tmpProducts
+
     return nil
 }
 
@@ -118,15 +142,7 @@ func (s *TenantServiceOp) get(t *TenantResponse) (*Tenant, error) {
 }
 
 // Update updates tenant
-func (s *TenantServiceOp) Update(t *Tenant) (*Tenant, error) {
-	endpoint := t.Href
-
-    t.CreatedAt = nil
-    t.UpdatedAt = nil
-    t.Href = ""
-    t.ShortName = ""
-    t.Custom = nil
-
+func (s *TenantServiceOp) UpdateByLink(endpoint string, t *TenantRequestUpdate) (*Tenant, error) {
     enc, err := json.Marshal(t)
     if err != nil {
         return nil, err

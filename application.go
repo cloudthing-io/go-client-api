@@ -6,7 +6,7 @@ import (
     "fmt"   
     "net/http"
     _"strings"
-    "github.com/jinzhu/copier"
+    "github.com/borystomala/copier"
 )
 
 // ApplicationsService is an interface for interacting with Applications endpoints of CloudThing API
@@ -22,47 +22,14 @@ type ApplicationsService interface {
     Delete(*Application) (error)
     DeleteByLink(string) (error)
     DeleteById(string) (error)
+
+    get(*ApplicationResponse) (*Application, error)
+    getCollection(*ApplicationsResponse) ([]Application, *ListParams, error)
 }
 
 // ApplicationsServiceOp handles communication with Applications related methods of API
 type ApplicationsServiceOp struct {
     client *Client
-}
-
-// ApplicationResponse is a struct representing item response from API
-type ApplicationResponse struct {
-    ModelBase
-    Name            string                  `json:"name,omitempty"`
-    Official        *bool                   `json:"official,omitempty"`
-    Description     string                  `json:"description,omitempty"`
-    Status          string                  `json:"status,omitempty"`
-    Custom          map[string]interface{}  `json:"custom,omitempty"`
-
-    Tenant          map[string]interface{}  `json:"tenant,omitempty"`
-    Directory       map[string]interface{}  `json:"directory,omitempty"`
-    Devices         map[string]interface{}  `json:"devices,omitempty"` 
-}
-
-// ApplicationResponse is a struct representing collection response from API
-type ApplicationsResponse struct{
-    ListParams
-    Items           []ApplicationResponse     `json:"items"`
-}
-
-// ApplicationResponse is a struct representing item create request for API
-type ApplicationRequestCreate struct {
-    Name            string                  `json:"name,omitempty"`
-    Description     string                  `json:"description,omitempty"`
-    Status          string                  `json:"status,omitempty"`
-    Custom          map[string]interface{}  `json:"custom,omitempty"`
-}
-
-// ApplicationResponse is a struct representing item update request for API
-type ApplicationRequestUpdate struct {
-    Name            string                  `json:"name,omitempty"`
-    Description     string                  `json:"description,omitempty"`
-    Status          string                  `json:"status,omitempty"`
-    Custom          map[string]interface{}  `json:"custom,omitempty"`
 }
 
 // Application is a struct representing CloudThing Application
@@ -85,7 +52,7 @@ type Application struct {
     // Points to Directory if expansion was requested, otherwise nil
     Directory       *Directory
     // Points to Devices if expansion was requested, otherwise nil
-    Devices         []Devices
+    Devices         []Device
 
     // Links to related resources
     tenant          string
@@ -94,6 +61,42 @@ type Application struct {
 
     // service for communication, internal use only
     service         *ApplicationsServiceOp
+}
+
+// ApplicationResponse is a struct representing item response from API
+type ApplicationResponse struct {
+    ModelBase
+    Name            string                  `json:"name,omitempty"`
+    Official        *bool                   `json:"official,omitempty"`
+    Description     string                  `json:"description,omitempty"`
+    Status          string                  `json:"status,omitempty"`
+    Custom          map[string]interface{}  `json:"custom,omitempty"`
+
+    Tenant          map[string]interface{}  `json:"tenant,omitempty"`
+    Directory       map[string]interface{}  `json:"directory,omitempty"`
+    Devices         map[string]interface{}  `json:"devices,omitempty"` 
+}
+
+// ApplicationResponse is a struct representing collection response from API
+type ApplicationsResponse struct{
+    ListParams
+    Items           []ApplicationResponse   `json:"items"`
+}
+
+// ApplicationResponse is a struct representing item create request for API
+type ApplicationRequestCreate struct {
+    Name            string                  `json:"name,omitempty"`
+    Description     string                  `json:"description,omitempty"`
+    Status          string                  `json:"status,omitempty"`
+    Custom          map[string]interface{}  `json:"custom,omitempty"`
+}
+
+// ApplicationResponse is a struct representing item update request for API
+type ApplicationRequestUpdate struct {
+    Name            string                  `json:"name,omitempty"`
+    Description     string                  `json:"description,omitempty"`
+    Status          string                  `json:"status,omitempty"`
+    Custom          map[string]interface{}  `json:"custom,omitempty"`
 }
 
 // TenantLink returns indicator of Tenant expansion and link to tenant.
@@ -220,6 +223,28 @@ func (s *ApplicationsServiceOp) get(r *ApplicationResponse) (*Application, error
     return obj, nil
 }
 
+// get is internal method for transforming ApplicationResponse into Application
+func (s *ApplicationsServiceOp) getCollection(r *ApplicationsResponse) ([]Application, *ListParams, error) {
+    dst := make([]Application, len(r.Items))
+
+    for i, _ := range r.Items {
+        t, err := s.get(&r.Items[i])
+        if err == nil {
+            dst[i] = *t
+        }
+    }
+
+    lp := &ListParams {
+        Href: r.Href,
+        Prev: r.Prev,
+        Next: r.Next,
+        Limit: r.Limit,
+        Size: r.Size,
+        Page: r.Page,
+    }
+    return dst, lp, nil
+}
+
 // GetById retrieves collection of applications of current tenant
 func (s *ApplicationsServiceOp) List(args ...interface{}) ([]Application, *ListParams, error) {
     endpoint := fmt.Sprintf("tenants/%s/applications", s.client.tenantId)
@@ -242,24 +267,7 @@ func (s *ApplicationsServiceOp) ListByLink(endpoint string, args ...interface{})
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
 
-    dst := make([]Application, len(obj.Items))
-    //copy(dst, obj.Items)
-    for i, _ := range obj.Items {
-        t, err := s.get(&obj.Items[i])
-        if err == nil {
-            dst[i] = *t
-        }
-    }
-
-    lp := &ListParams {
-        Href: obj.Href,
-        Prev: obj.Prev,
-        Next: obj.Next,
-        Limit: obj.Limit,
-        Size: obj.Size,
-        Page: obj.Page,
-    }
-    return dst, lp, nil
+    return s.getCollection(obj)
 }
 
 // GetById updates application with specified ID
@@ -314,11 +322,10 @@ func (s *ApplicationsServiceOp) Create(dir *ApplicationRequestCreate) (*Applicat
     if resp.StatusCode != http.StatusCreated {
         return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Application{}
+    obj := &ApplicationResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
-    obj.service = s
-    return obj, nil
+    return s.get(obj)
 }
 
 // Delete removes application
