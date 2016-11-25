@@ -125,6 +125,9 @@ func (s *TenantServiceOp) Get() (*Tenant, error) {
 			return nil, err
 		}
 		defer resp.Body.Close()
+        if resp.StatusCode != http.StatusOK {
+            return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        }
 	} else if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
 	}

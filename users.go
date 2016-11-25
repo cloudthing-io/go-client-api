@@ -12,6 +12,7 @@ import (
 // UsersService is an interface for interacting with Users endpoints of CloudThing API
 // https://tenant-name.cloudthing.io/api/v1/users
 type UsersService interface {
+    GetCurrent(...interface{}) (*User, error)
     GetById(string, ...interface{}) (*User, error)
     GetByLink(string, ...interface{}) (*User, error)
     ListByLink(string, ...interface{}) ([]User, *ListParams, error)
@@ -181,6 +182,37 @@ func (t *User) Delete() error {
     }
 
     return nil
+}
+
+// Get retrieves current user
+func (s *UsersServiceOp) GetCurrent(args ...interface{}) (*User, error) {
+    endpoint := "users/current"
+
+    resp, err := s.client.request("GET", endpoint, nil, args...)
+    if err != nil {
+        return nil, err
+    }
+
+    defer resp.Body.Close()
+
+    if resp.StatusCode == http.StatusForbidden || resp.StatusCode == http.StatusUnauthorized {
+        // this is probably due to redirect
+        endpoint = resp.Request.URL.String()        
+        resp, err = s.client.request("GET", endpoint, nil, args...)
+        if err != nil {
+            return nil, err
+        }
+        defer resp.Body.Close()
+        if resp.StatusCode != http.StatusOK {
+            return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        }
+    } else if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+    }
+    user := &UserResponse{}
+    dec := json.NewDecoder(resp.Body)
+    dec.Decode(user)
+    return s.get(user)
 }
 
 // GetById retrieves apikey by its ID

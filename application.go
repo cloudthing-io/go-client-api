@@ -89,6 +89,7 @@ type ApplicationRequestCreate struct {
     Description     string                  `json:"description,omitempty"`
     Status          string                  `json:"status,omitempty"`
     Custom          map[string]interface{}  `json:"custom,omitempty"`
+    Directory       *Link                   `json:"directory,omitempty"`
 }
 
 // ApplicationResponse is a struct representing item update request for API
@@ -97,6 +98,7 @@ type ApplicationRequestUpdate struct {
     Description     string                  `json:"description,omitempty"`
     Status          string                  `json:"status,omitempty"`
     Custom          map[string]interface{}  `json:"custom,omitempty"`
+    //Directory       *Link                   `json:"directory,omitempty"`
 }
 
 // TenantLink returns indicator of Tenant expansion and link to tenant.

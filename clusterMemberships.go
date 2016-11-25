@@ -69,7 +69,7 @@ type ClusterMembershipsResponse struct{
 // ClusterMembershipResponse is a struct representing item create request for API
 type ClusterMembershipRequestCreate struct {
     Device          *Link                       `json:"device,omitempty"`
-    Group           *Link                       `json:"group,omitempty"` 
+    Cluster         *Link                       `json:"cluster,omitempty"` 
 }
 
 // TenantLink returns indicator of Tenant expansion and link to tenant.
@@ -258,7 +258,7 @@ func (s *ClusterMembershipsServiceOp) CreateByLink(endpoint string, dir *Cluster
     }
 
     buf := bytes.NewBuffer(enc)
-
+    fmt.Println(buf.String())
     resp, err := s.client.request("POST", endpoint, buf)
     if err != nil {
         return nil, err

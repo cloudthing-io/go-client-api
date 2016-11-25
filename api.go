@@ -158,12 +158,18 @@ func (c *Client) SetUserAgent(ua string) {
 
 // SetBasicAuth uses provided basic authorization params for authenticating against 
 // CloudThing API and retrieves and stores JWT token if succeeded for future requests.
-func (c *Client) SetBasicAuth(username, password string) error {
+func (c *Client) SetBasicAuth(username, password string, opts ...interface{}) error {
     endpoint := "auth/token"
+    if len(opts) > 0 {
+        if v, ok := opts[0].(string); ok {
+            endpoint = fmt.Sprintf("%s?application=%s", endpoint, v)
+        }
+    }
     endp, err := url.Parse(endpoint)
     if err != nil {
         return err
     }
+    fmt.Println(endpoint)
 
     u := c.BaseURL.ResolveReference(endp)
 
