@@ -191,7 +191,8 @@ func (c *Client) SetTokenAuth(token *Token) error {
 // setToken parses JWT token, extracts tenant ID and sets token and in in client
 func (c *Client) setToken(t *Token) {
     token, _ := jwt.Parse(t.Token, nil)
-    iss := strings.Split(token.Claims["iss"].(string), "/")
+    claims := token.Claims.(jwt.MapClaims)
+    iss := strings.Split(claims["iss"].(string), "/")
     c.tenantId = iss[len(iss)-1]
     c.token = t
 }
@@ -236,7 +237,8 @@ func (c *Client) IsAuthenticated() bool {
         var vexp bool
         var err error
         now := time.Now().Unix()
-        switch num := t.Claims["exp"].(type) {
+        claims := t.Claims.(jwt.MapClaims)
+        switch num := claims["exp"].(type) {
         case json.Number:
             if exp, err = num.Int64(); err == nil {
                 vexp = true
