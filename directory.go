@@ -63,6 +63,36 @@ func (d *Directory) Applications() ([]Application, *ListParams, error) {
     return d.service.client.Applications.ListByHref(d.applications, nil)
 }
 
+func (d *Directory) UserCreate(dir *User) (*User, error) {
+    endpoint := fmt.Sprintf("%s/users", d.Href)
+
+    dir.CreatedAt = nil
+    dir.UpdatedAt = nil
+    dir.Href = ""
+
+    enc, err := json.Marshal(dir)
+    if err != nil {
+        return nil, err
+    }
+
+    buf := bytes.NewBuffer(enc)
+
+    resp, err := d.service.client.request("POST", endpoint, buf)
+    if err != nil {
+        return nil, err
+    }
+
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusCreated {
+        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+    }
+    obj := &User{}
+    dec := json.NewDecoder(resp.Body)
+    dec.Decode(obj)
+    obj.service = d.service.client.Users.(*UsersServiceOp)
+    return obj, nil
+}
 
 // Save updates tenant by calling Update() on service under the hood
 func (t *Directory) Save() error {

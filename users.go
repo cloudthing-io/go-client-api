@@ -33,6 +33,8 @@ type User struct {
     Email           string          `json:"email,omitempty"`
     FirstName       string          `json:"firstName,omitempty"`
     Surname         string          `json:"surname,omitempty"`
+    Password        string          `json:"password,omitempty"`
+    Activated       bool          `json:"activated,omitempty"`
     LastSuccessfulLogin       *time.Time       `json:"lastSuccessfulLogin,omitempty"`
     LastFailedLogin       *time.Time       `json:"lastFailedLogin,omitempty"`
     Custom          interface{}     `json:"custom,omitempty"`
