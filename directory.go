@@ -112,11 +112,43 @@ func (d *Directory) ApplicationsLink() (bool, string) {
     return (d.Applications != nil), d.applications
 }
 
+<<<<<<< HEAD
 // ApplicationsLink returns indicator of Directory expansion and link to dierctory.
 // If expansion for Directory was requested and resource is available via pointer
 // it returns true, otherwise false. Link (href) is always returned. 
 func (d *Directory) UsersLink() (bool, string) {
     return (d.Users != nil), d.users
+}
+
+func (d *Directory) UserCreate(dir *User) (*User, error) {
+    endpoint := fmt.Sprintf("%s/users", d.Href)
+
+    dir.CreatedAt = nil
+    dir.UpdatedAt = nil
+    dir.Href = ""
+
+    enc, err := json.Marshal(dir)
+    if err != nil {
+        return nil, err
+    }
+
+    buf := bytes.NewBuffer(enc)
+
+    resp, err := d.service.client.request("POST", endpoint, buf)
+    if err != nil {
+        return nil, err
+    }
+
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusCreated {
+        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+    }
+    obj := &User{}
+    dec := json.NewDecoder(resp.Body)
+    dec.Decode(obj)
+    obj.service = d.service.client.Users.(*UsersServiceOp)
+    return obj, nil
 }
 
 // ApplicationsLink returns indicator of Directory expansion and link to dierctory.

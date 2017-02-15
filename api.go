@@ -158,16 +158,24 @@ func (c *Client) SetUserAgent(ua string) {
 
 // SetBasicAuth uses provided basic authorization params for authenticating against 
 // CloudThing API and retrieves and stores JWT token if succeeded for future requests.
-func (c *Client) SetBasicAuth(username, password string, opts ...interface{}) error {
+func (c *Client) SetBasicAuth(username, password string) error {
+    token, err := c.GetAuthToken(username, password, "")
+    if err == nil {
+        c.setToken(token)
+    }
+    return err
+}
+
+// GetAuthToken uses provided basic authorization params for authenticating against 
+// CloudThing API and retrieves and returns JWT token.
+func (c *Client) GetAuthToken(username, password, application string) (*Token, error) {
     endpoint := "auth/token"
-    if len(opts) > 0 {
-        if v, ok := opts[0].(string); ok {
-            endpoint = fmt.Sprintf("%s?application=%s", endpoint, v)
-        }
+    if application != "" {
+        endpoint = fmt.Sprintf("%s?application=%s", endpoint, application)
     }
     endp, err := url.Parse(endpoint)
     if err != nil {
-        return err
+        return nil, err
     }
     fmt.Println(endpoint)
 
@@ -175,25 +183,24 @@ func (c *Client) SetBasicAuth(username, password string, opts ...interface{}) er
 
     req, err := http.NewRequest("POST", u.String(), nil)
     if err != nil {
-        return err
+        return nil, err
     }
     req.SetBasicAuth(username, password)
     resp, err := c.client.Do(req)
     if err != nil {
-        return err
+        return nil, err
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return fmt.Errorf("Failed to authenticate user: %d\n", resp.StatusCode)
+        return nil, fmt.Errorf("Failed to authenticate user: %d\n", resp.StatusCode)
     }
 
     token := &Token{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(token)
 
-    c.setToken(token)
-    return nil
+    return token, nil
 }
 
 // SetTokenAuth uses provided JWT token for authenticating against CloudThing API

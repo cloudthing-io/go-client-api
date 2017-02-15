@@ -38,31 +38,22 @@ type UsersServiceOp struct {
 type User struct {
     // Standard field for all resources
     ModelBase
-    Username            string
-    Email               string
-    FirstName           string
-    Surname             string
-    Password            string
-    LastSuccessfulLogin *time.Time
-    LastFailedLogin     *time.Time
-    Custom              map[string]interface{}
 
-    // Points to Tenant if expansion was requested, otherwise nil
-    Tenant          *Tenant
-    // Points to Applications if expansion was requested, otherwise nil
-    Applications    []Application
-    // Points to Tenant if expansion was requested, otherwise nil
-    Directory       *Directory
-    // Points to Applications if expansion was requested, otherwise nil
-    Usergroups      []Usergroup
-    Memberships     []Membership
+    Username        string          `json:"username,omitempty"`
+    Email           string          `json:"email,omitempty"`
+    FirstName       string          `json:"firstName,omitempty"`
+    Surname         string          `json:"surname,omitempty"`
+    Password        string          `json:"password,omitempty"`
+    Activated       bool          `json:"activated,omitempty"`
+    LastSuccessfulLogin       *time.Time       `json:"lastSuccessfulLogin,omitempty"`
+    LastFailedLogin       *time.Time       `json:"lastFailedLogin,omitempty"`
+    Custom          interface{}     `json:"custom,omitempty"`
 
-    // Links to related resources
-    tenant          string
-    applications    string
-    directory       string
-    usergroups      string
-    memberships     string
+    tenant          string          `json:"tenant,omitempty"`
+    directory       string          `json:"directory,omitempty"`
+    applications         string          `json:"applications,omitempty"`
+    usergroups       string          `json:"usergroups,omitempty"`
+    memberships         string          `json:"memberships,omitempty"`    
 
     // service for communication, internal use only
     service         *UsersServiceOp
