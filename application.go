@@ -5,76 +5,147 @@ import (
     "encoding/json" 
     "fmt"   
     "net/http"
-    "strings"
+    _"strings"
+    "github.com/borystomala/copier"
 )
 
-// ApplicationsService is an interafce for interacting with Applications endpoints of CloudThing API
-// https://tenant-name.cloudthing.io/api/v1/directories
-
+// ApplicationsService is an interface for interacting with Applications endpoints of CloudThing API
+// https://tenant-name.cloudthing.io/api/v1/applications
 type ApplicationsService interface {
-    GetById(string) (*Application, error)
-    GetByHref(string) (*Application, error)
-    List(*ListOptions) ([]Application, *ListParams, error)
-    ListByHref(string, *ListOptions) ([]Application, *ListParams, error)
-    Create(*Application) (*Application, error)
-    Update(*Application) (*Application, error)
+    GetById(string, ...interface{}) (*Application, error)
+    GetByLink(string, ...interface{}) (*Application, error)
+    List(...interface{}) ([]Application, *ListParams, error)
+    ListByLink(string, ...interface{}) ([]Application, *ListParams, error)
+    Create(*ApplicationRequestCreate) (*Application, error)
+    UpdateById(string, *ApplicationRequestUpdate) (*Application, error)
+    UpdateByLink(string, *ApplicationRequestUpdate) (*Application, error)
     Delete(*Application) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
+
+    get(*ApplicationResponse) (*Application, error)
+    getCollection(*ApplicationsResponse) ([]Application, *ListParams, error)
 }
 
-// ApplicationsServiceOp handles communication with Tenant related methods of API
+// ApplicationsServiceOp handles communication with Applications related methods of API
 type ApplicationsServiceOp struct {
     client *Client
 }
 
+// Application is a struct representing CloudThing Application
 type Application struct {
+    // Standard field for all resources
     ModelBase
-    Name            string          `json:"name,omitempty"`
-    Official        bool            `json:"official,omitempty"`
-    Description     string          `json:"description,omitempty"`
-    Status          string          `json:"status,omitempty"`
-    Custom          interface{}     `json:"custom,omitempty"`
+    // Application name
+    Name            string
+    // Indicates whether application is official or not
+    Official        *bool 
+    // Description of application
+    Description     string
+    // Application status, may be ENABLED or DISABLED
+    Status          string
+    // Field for tenant's custom data
+    Custom          map[string]interface{}
 
-    tenant          string          `json:"tenant,omitempty"`
-    directory       string          `json:"directory,omitempty"`
-    devices         string          `json:"devices,omitempty"`   
+    // Points to Tenant if expansion was requested, otherwise nil
+    Tenant          *Tenant
+    // Points to Directory if expansion was requested, otherwise nil
+    Directory       *Directory
+    // Points to Devices if expansion was requested, otherwise nil
+    Devices         []Device
+
+    // Links to related resources
+    tenant          string
+    directory       string
+    devices         string
 
     // service for communication, internal use only
-    service         *ApplicationsServiceOp `json:"-"` 
+    service         *ApplicationsServiceOp
 }
 
-type Applications struct{
+// ApplicationResponse is a struct representing item response from API
+type ApplicationResponse struct {
+    ModelBase
+    Name            string                  `json:"name,omitempty"`
+    Official        *bool                   `json:"official,omitempty"`
+    Description     string                  `json:"description,omitempty"`
+    Status          string                  `json:"status,omitempty"`
+    Custom          map[string]interface{}  `json:"custom,omitempty"`
+
+    Tenant          map[string]interface{}  `json:"tenant,omitempty"`
+    Directory       map[string]interface{}  `json:"directory,omitempty"`
+    Devices         map[string]interface{}  `json:"devices,omitempty"` 
+}
+
+// ApplicationResponse is a struct representing collection response from API
+type ApplicationsResponse struct{
     ListParams
-    Items           []Application     `json:"items"`
+    Items           []ApplicationResponse   `json:"items"`
 }
 
-func (d *Application) Tenant() (*Tenant, error) {
-    return d.service.client.Tenant.Get()
+// ApplicationResponse is a struct representing item create request for API
+type ApplicationRequestCreate struct {
+    Name            string                  `json:"name,omitempty"`
+    Description     string                  `json:"description,omitempty"`
+    Status          string                  `json:"status,omitempty"`
+    Custom          map[string]interface{}  `json:"custom,omitempty"`
+    Directory       *Link                   `json:"directory,omitempty"`
 }
 
-func (d *Application) Directory() (*Directory, error) {
-    id := strings.Split(d.directory, "/")
-    return d.service.client.Directories.GetById(id[len(id)-1])
+// ApplicationResponse is a struct representing item update request for API
+type ApplicationRequestUpdate struct {
+    Name            string                  `json:"name,omitempty"`
+    Description     string                  `json:"description,omitempty"`
+    Status          string                  `json:"status,omitempty"`
+    Custom          map[string]interface{}  `json:"custom,omitempty"`
+    //Directory       *Link                   `json:"directory,omitempty"`
 }
 
-func (d *Application) Devices() ([]Device, *ListParams, error) {
-    return d.service.client.Devices.ListByHref(d.devices, nil)
+// TenantLink returns indicator of Tenant expansion and link to tenant.
+// If expansion for Tenant was requested and resource is available via pointer
+// it returns true, otherwise false. Link (href) is always returned. 
+func (d *Application) TenantLink() (bool, string) {
+    return (d.Tenant != nil), d.tenant
 }
 
-// Save updates application by calling Update() on service under the hood
+// DirectoryLink returns indicator of Directory expansion and link to dierctory.
+// If expansion for Directory was requested and resource is available via pointer
+// it returns true, otherwise false. Link (href) is always returned. 
+func (d *Application) DirectoryLink() (bool, string) {
+    return (d.Directory != nil), d.directory
+}
+
+// DevicesLink returns indicator of Devices expansion and link to list of devices.
+// If expansion for Devices was requested and resource is available via pointer
+// it returns true, otherwise false. Link (href) is always returned. 
+func (d *Application) DevicesLink() (bool, string) {
+    return (d.Devices != nil), d.devices
+}
+
+// Save is a helper method for updating application.
+// It calls UpdateByLink() on service under the hood.
 func (t *Application) Save() error {
-    tmp := *t
-
-    ten, err := t.service.Update(&tmp)
+    tmp := &ApplicationRequestUpdate{}
+    copier.Copy(tmp, t)
+    ten, err := t.service.UpdateByLink(t.Href, tmp)
     if err != nil {
         return err
     }
 
+    tmpTenant := t.Tenant
+    tmpDirectory := t.Directory
+    tmpDevices := t.Devices
+
     *t = *ten
+    t.Tenant = tmpTenant
+    t.Directory = tmpDirectory
+    t.Devices = tmpDevices
+
     return nil
 }
 
+// Save is a helper method for deleting application.
+// It calls Delete() on service under the hood.
 func (t *Application) Delete() error {
     err := t.service.Delete(t)
     if err != nil {
@@ -84,16 +155,17 @@ func (t *Application) Delete() error {
     return nil
 }
 
-// GetById retrieves application
-func (s *ApplicationsServiceOp) GetById(id string) (*Application, error) {
+// GetById retrieves application by its ID
+func (s *ApplicationsServiceOp) GetById(id string, args ...interface{}) (*Application, error) {
     endpoint := "applications/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint, args...)
 }
 
-func (s *ApplicationsServiceOp) GetByHref(endpoint string) (*Application, error) {
-    resp, err := s.client.request("GET", endpoint, nil)
+// GetById retrieves application by its full link
+func (s *ApplicationsServiceOp) GetByLink(endpoint string, args ...interface{}) (*Application, error) {
+    resp, err := s.client.request("GET", endpoint, nil, args...)
     if err != nil {
         return nil, err
     }
@@ -103,28 +175,87 @@ func (s *ApplicationsServiceOp) GetByHref(endpoint string) (*Application, error)
     if resp.StatusCode != http.StatusOK {
         return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Application{}
+    obj := &ApplicationResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
+
+    return s.get(obj)
+}
+
+// get is internal method for transforming ApplicationResponse into Application
+func (s *ApplicationsServiceOp) get(r *ApplicationResponse) (*Application, error) {
+    obj := &Application{}
+    copier.Copy(obj, r)
+    if v, ok :=  r.Tenant["href"]; ok {
+        obj.tenant = v.(string)
+    }
+    if v, ok :=  r.Directory["href"]; ok {
+        obj.directory = v.(string)
+    }
+    if v, ok :=  r.Devices["href"]; ok {
+        obj.devices = v.(string)
+    }
+    if len(r.Tenant) > 1 {        
+        bytes, err := json.Marshal(r.Tenant)
+        if err != nil {
+            return nil, err
+        }
+        ten := &TenantResponse{}
+        json.Unmarshal(bytes, ten)
+        t, err := s.client.Tenant.get(ten)
+        if err != nil {
+            return nil, err
+        }
+        obj.Tenant = t
+    }
+ /*   if len(r.Directory) > 1 {        
+        bytes, err := json.Marshal(r.Directory)
+        if err != nil {
+            return nil, err
+        }
+        ten := &DirectoryResponse{}
+        json.Unmarshal(bytes, ten)
+        t, err := s.client.Directories.get(ten)
+        if err != nil {
+            return nil, err
+        }
+        obj.Directory = t
+    }*/
     obj.service = s
     return obj, nil
 }
 
-func (s *ApplicationsServiceOp) List(lo *ListOptions) ([]Application, *ListParams, error) {
-    endpoint := fmt.Sprintf("tenants/%s/applications", s.client.tenantId)
-    return s.ListByHref(endpoint, lo)
-}
+// get is internal method for transforming ApplicationResponse into Application
+func (s *ApplicationsServiceOp) getCollection(r *ApplicationsResponse) ([]Application, *ListParams, error) {
+    dst := make([]Application, len(r.Items))
 
-func (s *ApplicationsServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]Application, *ListParams, error) {
-    if lo == nil {
-        lo = &ListOptions {
-            Page: 1,
-            Limit: DefaultLimit,
+    for i, _ := range r.Items {
+        t, err := s.get(&r.Items[i])
+        if err == nil {
+            dst[i] = *t
         }
     }
-    endpoint = fmt.Sprintf("%s?limit=%d&page=%d", endpoint, lo.Limit, lo.Page)
 
-    resp, err := s.client.request("GET", endpoint, nil)
+    lp := &ListParams {
+        Href: r.Href,
+        Prev: r.Prev,
+        Next: r.Next,
+        Limit: r.Limit,
+        Size: r.Size,
+        Page: r.Page,
+    }
+    return dst, lp, nil
+}
+
+// GetById retrieves collection of applications of current tenant
+func (s *ApplicationsServiceOp) List(args ...interface{}) ([]Application, *ListParams, error) {
+    endpoint := fmt.Sprintf("tenants/%s/applications", s.client.tenantId)
+    return s.ListByLink(endpoint, args...)
+}
+
+// GetById retrieves collection of applications by link
+func (s *ApplicationsServiceOp) ListByLink(endpoint string, args ...interface{}) ([]Application, *ListParams, error) {
+    resp, err := s.client.request("GET", endpoint, nil, args...)
     if err != nil {
         return nil, nil, err
     }
@@ -134,35 +265,21 @@ func (s *ApplicationsServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]
     if resp.StatusCode != http.StatusOK {
         return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Applications{}
+    obj := &ApplicationsResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
 
-    dst := make([]Application, len(obj.Items))
-    copy(dst, obj.Items)
-    for i, _ := range dst {
-        dst[i].service = s
-    }
-
-    lp := &ListParams {
-        Href: obj.Href,
-        Prev: obj.Prev,
-        Next: obj.Next,
-        Limit: obj.Limit,
-        Size: obj.Size,
-        Page: obj.Page,
-    }
-    return dst, lp, nil
+    return s.getCollection(obj)
 }
 
-// Update updates tenant
-func (s *ApplicationsServiceOp) Update(t *Application) (*Application, error) {
-    endpoint := t.Href
+// GetById updates application with specified ID
+func (s *ApplicationsServiceOp) UpdateById(id string, t *ApplicationRequestUpdate) (*Application, error) {
+    endpoint := fmt.Sprintf("applications/%s", id)
+    return s.UpdateByLink(endpoint, t)
+}
 
-    t.CreatedAt = nil
-    t.UpdatedAt = nil
-    t.Href = ""
-
+// GetById updates application specified by link
+func (s *ApplicationsServiceOp) UpdateByLink(endpoint string, t *ApplicationRequestUpdate) (*Application, error) {
     enc, err := json.Marshal(t)
     if err != nil {
         return nil, err
@@ -180,19 +297,15 @@ func (s *ApplicationsServiceOp) Update(t *Application) (*Application, error) {
     if resp.StatusCode != http.StatusOK {
         return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Application{}
+    obj := &ApplicationResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
-    obj.service = s
-    return obj, nil
+    return s.get(obj)
 }
 
-func (s *ApplicationsServiceOp) Create(dir *Application) (*Application, error) {
+// Create creates new application within tenant
+func (s *ApplicationsServiceOp) Create(dir *ApplicationRequestCreate) (*Application, error) {
     endpoint := fmt.Sprintf("tenants/%s/applications", s.client.tenantId)
-
-    dir.CreatedAt = nil
-    dir.UpdatedAt = nil
-    dir.Href = ""
 
     enc, err := json.Marshal(dir)
     if err != nil {
@@ -211,26 +324,25 @@ func (s *ApplicationsServiceOp) Create(dir *Application) (*Application, error) {
     if resp.StatusCode != http.StatusCreated {
         return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Application{}
+    obj := &ApplicationResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
-    obj.service = s
-    return obj, nil
+    return s.get(obj)
 }
 
 // Delete removes application
 func (s *ApplicationsServiceOp) Delete(t *Application) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
 // Delete removes application by ID
 func (s *ApplicationsServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("applications/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
 // Delete removes application by link
-func (s *ApplicationsServiceOp) DeleteByHref(endpoint string) (error) {
+func (s *ApplicationsServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

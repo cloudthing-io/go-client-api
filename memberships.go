@@ -5,59 +5,106 @@ import (
     "encoding/json" 
     "fmt"   
     "net/http"
+    _"strings"
+    "github.com/borystomala/copier"
 )
 
-// MembershipsService is an interafce for interacting with Memberships endpoints of CloudThing API
+// MembershipsService is an interface for interacting with Memberships endpoints of CloudThing API
 // https://tenant-name.cloudthing.io/api/v1/memberships
-
 type MembershipsService interface {
-    GetById(string) (*Membership, error)
-    GetByHref(string) (*Membership, error)
-    ListByHref(string, *ListOptions) ([]Membership, *ListParams, error)
-    Create(*Membership) (*Membership, error)
+    GetById(string, ...interface{}) (*Membership, error)
+    GetByLink(string, ...interface{}) (*Membership, error)
+    ListByLink(string, ...interface{}) ([]Membership, *ListParams, error)
+    ListByUser(string, ...interface{}) ([]Membership, *ListParams, error)
+    ListByUsergroup(string, ...interface{}) ([]Membership, *ListParams, error)
+    CreateByLink(string, *MembershipRequestCreate) (*Membership, error)
+    CreateByUser(string, *MembershipRequestCreate) (*Membership, error)
+    CreateByUsergroup(string, *MembershipRequestCreate) (*Membership, error)
     Delete(*Membership) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
+
+    get(*MembershipResponse) (*Membership, error)
+    getCollection(*MembershipsResponse) ([]Membership, *ListParams, error)
 }
 
-// MembershipsServiceOp handles communication with Tenant related methods of API
+// MembershipsServiceOp handles communication with Memberships related methods of API
 type MembershipsServiceOp struct {
     client *Client
 }
 
+// Membership is a struct representing CloudThing Membership
 type Membership struct {
+    // Standard field for all resources
     ModelBase
 
-    user            string          `json:"user,omitempty"`
-    usergroup       string          `json:"usergroup,omitempty"`
+    User            *User 
+    Usergroup       *Usergroup
+
+    // Links to related resources
+    user            string
+    usergroup       string
 
     // service for communication, internal use only
-    service         *MembershipsServiceOp `json:"-"` 
+    service         *MembershipsServiceOp
 }
 
-type Memberships struct{
+// MembershipResponse is a struct representing item response from API
+type MembershipResponse struct {
+    ModelBase
+
+    User            map[string]interface{}  `json:"user,omitempty"`
+    Usergroup       map[string]interface{}  `json:"usergroup,omitempty"` 
+}
+
+// MembershipResponse is a struct representing collection response from API
+type MembershipsResponse struct{
     ListParams
-    Items           []Membership     `json:"items"`
+    Items           []MembershipResponse   `json:"items"`
 }
 
-func (d *Membership) User() (*User, error) {
-    return d.service.client.Users.GetByHref(d.user)
+// MembershipResponse is a struct representing item create request for API
+type MembershipRequestCreate struct {
+    User            *Link                   `json:"user,omitempty"`
+    Usergroup       *Link                   `json:"usergroup,omitempty"` 
 }
 
-func (d *Membership) Usergroup() (*Usergroup, error) {
-    return d.service.client.Usergroups.GetByHref(d.usergroup)
+// TenantLink returns indicator of Tenant expansion and link to tenant.
+// If expansion for Tenant was requested and resource is available via pointer
+// it returns true, otherwise false. Link (href) is always returned. 
+func (d *Membership) UserLink() (bool, string) {
+    return (d.User != nil), d.user
 }
 
-// GetById retrieves directory
-func (s *MembershipsServiceOp) GetById(id string) (*Membership, error) {
+// DevicesLink returns indicator of Devices expansion and link to list of devices.
+// If expansion for Devices was requested and resource is available via pointer
+// it returns true, otherwise false. Link (href) is always returned. 
+func (d *Membership) UsergroupLink() (bool, string) {
+    return (d.Usergroup != nil), d.usergroup
+}
+
+// Delete is a helper method for deleting product.
+// It calls Delete() on service under the hood.
+func (t *Membership) Delete() error {
+    err := t.service.Delete(t)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
+// GetById retrieves product by its ID
+func (s *MembershipsServiceOp) GetById(id string, args ...interface{}) (*Membership, error) {
     endpoint := "memberships/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint, args...)
 }
 
-func (s *MembershipsServiceOp) GetByHref(endpoint string) (*Membership, error) {
-    resp, err := s.client.request("GET", endpoint, nil)
+// GetById retrieves product by its full link
+func (s *MembershipsServiceOp) GetByLink(endpoint string, args ...interface{}) (*Membership, error) {
+    resp, err := s.client.request("GET", endpoint, nil, args...)
     if err != nil {
         return nil, err
     }
@@ -67,22 +114,90 @@ func (s *MembershipsServiceOp) GetByHref(endpoint string) (*Membership, error) {
     if resp.StatusCode != http.StatusOK {
         return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Membership{}
+    obj := &MembershipResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
+
+    return s.get(obj)
+}
+
+// get is internal method for transforming MembershipResponse into Membership
+func (s *MembershipsServiceOp) get(r *MembershipResponse) (*Membership, error) {
+    obj := &Membership{}
+    copier.Copy(obj, r)
+    if v, ok :=  r.User["href"]; ok {
+        obj.user = v.(string)
+    }
+    if v, ok :=  r.Usergroup["href"]; ok {
+        obj.usergroup = v.(string)
+    }
+    if len(r.User) > 1 {        
+        bytes, err := json.Marshal(r.User)
+        if err != nil {
+            return nil, err
+        }
+        ten := &UserResponse{}
+        json.Unmarshal(bytes, ten)
+        t, err := s.client.Users.get(ten)
+        if err != nil {
+            return nil, err
+        }
+        obj.User = t
+    }
+    if len(r.Usergroup) > 1 {        
+        bytes, err := json.Marshal(r.Usergroup)
+        if err != nil {
+            return nil, err
+        }
+        ten := &UsergroupResponse{}
+        json.Unmarshal(bytes, ten)
+        t, err := s.client.Usergroups.get(ten)
+        if err != nil {
+            return nil, err
+        }
+        obj.Usergroup = t
+    }
     obj.service = s
     return obj, nil
 }
-func (s *MembershipsServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]Membership, *ListParams, error) {
-    if lo == nil {
-        lo = &ListOptions {
-            Page: 1,
-            Limit: DefaultLimit,
+
+// get is internal method for transforming MembershipResponse into Membership
+func (s *MembershipsServiceOp) getCollection(r *MembershipsResponse) ([]Membership, *ListParams, error) {
+    dst := make([]Membership, len(r.Items))
+
+    for i, _ := range r.Items {
+        t, err := s.get(&r.Items[i])
+        if err == nil {
+            dst[i] = *t
         }
     }
-    endpoint = fmt.Sprintf("%s?limit=%d&page=%d", endpoint, lo.Limit, lo.Page)
 
-    resp, err := s.client.request("GET", endpoint, nil)
+    lp := &ListParams {
+        Href: r.Href,
+        Prev: r.Prev,
+        Next: r.Next,
+        Limit: r.Limit,
+        Size: r.Size,
+        Page: r.Page,
+    }
+    return dst, lp, nil
+}
+
+// GetById retrieves collection of memberships of current tenant
+func (s *MembershipsServiceOp) ListByUser(id string, args ...interface{}) ([]Membership, *ListParams, error) {
+    endpoint := fmt.Sprintf("users/%s/memberships", id)
+    return s.ListByLink(endpoint, args...)
+}
+
+// GetById retrieves collection of memberships of current tenant
+func (s *MembershipsServiceOp) ListByUsergroup(id string, args ...interface{}) ([]Membership, *ListParams, error) {
+    endpoint := fmt.Sprintf("usergroups/%s/memberships", id)
+    return s.ListByLink(endpoint, args...)
+}
+
+// GetById retrieves collection of memberships by link
+func (s *MembershipsServiceOp) ListByLink(endpoint string, args ...interface{}) ([]Membership, *ListParams, error) {
+    resp, err := s.client.request("GET", endpoint, nil, args...)
     if err != nil {
         return nil, nil, err
     }
@@ -92,34 +207,25 @@ func (s *MembershipsServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]M
     if resp.StatusCode != http.StatusOK {
         return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Memberships{}
+    obj := &MembershipsResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
 
-    dst := make([]Membership, len(obj.Items))
-    copy(dst, obj.Items)
-    for i, _ := range dst {
-        dst[i].service = s
-    }
-
-    lp := &ListParams {
-        Href: obj.Href,
-        Prev: obj.Prev,
-        Next: obj.Next,
-        Limit: obj.Limit,
-        Size: obj.Size,
-        Page: obj.Page,
-    }
-    return dst, lp, nil
+    return s.getCollection(obj)
 }
 
-func (s *MembershipsServiceOp) Create(dir *Membership) (*Membership, error) {
-    endpoint := fmt.Sprintf("memberships")
+func (s *MembershipsServiceOp) CreateByUser(id string, dir *MembershipRequestCreate) (*Membership, error) {
+    endpoint := fmt.Sprintf("users/%s/memberships", id)
+    return s.CreateByLink(endpoint, dir)
+}
 
-    dir.CreatedAt = nil
-    dir.UpdatedAt = nil
-    dir.Href = ""
+func (s *MembershipsServiceOp) CreateByUsergroup(id string, dir *MembershipRequestCreate) (*Membership, error) {
+    endpoint := fmt.Sprintf("usergroups/%s/memberships", id)
+    return s.CreateByLink(endpoint, dir)
+}
 
+// Create creates new product within tenant
+func (s *MembershipsServiceOp) CreateByLink(endpoint string, dir *MembershipRequestCreate) (*Membership, error) {
     enc, err := json.Marshal(dir)
     if err != nil {
         return nil, err
@@ -137,26 +243,25 @@ func (s *MembershipsServiceOp) Create(dir *Membership) (*Membership, error) {
     if resp.StatusCode != http.StatusCreated {
         return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Membership{}
+    obj := &MembershipResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
-    obj.service = s
-    return obj, nil
+    return s.get(obj)
 }
 
-// Delete removes application
+// Delete removes product
 func (s *MembershipsServiceOp) Delete(t *Membership) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
-// Delete removes application by ID
+// Delete removes product by ID
 func (s *MembershipsServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("memberships/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
-// Delete removes application by link
-func (s *MembershipsServiceOp) DeleteByHref(endpoint string) (error) {
+// Delete removes product by link
+func (s *MembershipsServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

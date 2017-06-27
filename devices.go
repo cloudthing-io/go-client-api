@@ -4,105 +4,201 @@ import (
     "bytes"
     "encoding/json" 
     "fmt"   
-    "net/http"
+    "net/http"    
+    "github.com/borystomala/copier"
 )
 
-// DevicesService is an interafce for interacting with Devices endpoints of CloudThing API
+// DevicesService is an interface for interacting with Devices endpoints of CloudThing API
 // https://tenant-name.cloudthing.io/api/v1/devices
-
 type DevicesService interface {
-    GetById(string) (*Device, error)
-    GetByHref(string) (*Device, error)
-    List(*ListOptions) ([]Device, *ListParams, error)
-    ListByHref(string, *ListOptions) ([]Device, *ListParams, error)
-    Create(*Device) (*Device, error)
-    Update(*Device) (*Device, error)
+    GetById(string, ...interface{}) (*Device, error)
+    GetByLink(string, ...interface{}) (*Device, error)
+    ListByLink(string, ...interface{}) ([]Device, *ListParams, error)
+    ListByCluster(string, ...interface{}) ([]Device, *ListParams, error)
+    ListByApplication(string, ...interface{}) ([]Device, *ListParams, error)
+    ListByGroup(string, ...interface{}) ([]Device, *ListParams, error)
+    ListByProduct(string, ...interface{}) ([]Device, *ListParams, error)
+    CreateByLink(string, *DeviceRequestCreate) (*Device, error)
+    CreateByProduct(string, *DeviceRequestCreate) (*Device, error)
+    UpdateById(string, *DeviceRequestUpdate) (*Device, error)
+    UpdateByLink(string, *DeviceRequestUpdate) (*Device, error)
     Delete(*Device) (error)
-    DeleteByHref(string) (error)
+    DeleteByLink(string) (error)
     DeleteById(string) (error)
+
+    get(*DeviceResponse) (*Device, error)
+    getCollection(*DevicesResponse) ([]Device, *ListParams, error)
 }
 
-// DevicesServiceOp handles communication with Tenant related methods of API
+// DevicesServiceOp handles communication with Devices related methods of API
 type DevicesServiceOp struct {
     client *Client
 }
 
-type DeviceProperty struct {
-    Key             string          `json:"key"`
-    Value           interface{}     `json:"value"`
-}
-
+// Device is a struct representing CloudThing Device
 type Device struct {
+    // Standard field for all resources
     ModelBase
-    Token               string          `json:"token,omitempty"`
-    Activated           *bool           `json:"activated"`
-    Custom              interface{}     `json:"custom,omitempty"`
-    Properties          []DeviceProperty`json:"properties,omitempty"`
+    Token               string
+    Activated           *bool
+    Custom              map[string]interface{}
+    Properties          []DeviceProperty
 
-    tenant              string          `json:"tenant,omitempty"`
-    product             string          `json:"product,omitempty"`
-    clusters            string          `json:"clusters,omitempty"`
-    groups              string          `json:"groups,omitempty"`
-    clusterMemberships  string          `json:"clusterMemberships,omitempty"`
-    groupMemberships    string          `json:"groupMemberships,omitempty"`
+    // Points to Tenant if expansion was requested, otherwise nil
+    Tenant              *Tenant
+    // Points to Applications if expansion was requested, otherwise nil
+    Product             *Product
+    // Points to Tenant if expansion was requested, otherwise nil
+    Clusters            []Cluster
+    ClusterMemberships  []ClusterMembership
+    // Points to Applications if expansion was requested, otherwise nil
+    Groups              []Group
+    GroupMemberships    []GroupMembership
 
+    // Links to related resources
+    tenant              string
+    product             string
+    clusters            string
+    groups              string
+    clusterMemberships  string
+    groupMemberships    string
 
     // service for communication, internal use only
-    service         *DevicesServiceOp `json:"-"` 
+    service         *DevicesServiceOp
 }
 
-type Devices struct{
+type DeviceProperty struct {
+    Key             string                      `json:"key"`
+    Value           interface{}                 `json:"value"`
+}
+
+// DeviceResponse is a struct representing item response from API
+type DeviceResponse struct {
+    ModelBase
+    Token               string                  `json:"token,omitempty"`
+    Activated           *bool                   `json:"activated"`
+    Custom              map[string]interface{}  `json:"custom,omitempty"`
+    Properties          []DeviceProperty        `json:"properties,omitempty"`
+
+    Tenant              map[string]interface{}  `json:"tenant,omitempty"`
+    Product             map[string]interface{}  `json:"product,omitempty"`
+    Clusters            map[string]interface{}  `json:"clusters,omitempty"`
+    Groups              map[string]interface{}  `json:"groups,omitempty"`
+    ClusterMemberships  map[string]interface{}  `json:"clusterMemberships,omitempty"`
+    GroupMemberships    map[string]interface{}  `json:"groupMemberships,omitempty"`
+}
+
+
+// DeviceResponse is a struct representing collection response from API
+type DevicesResponse struct{
     ListParams
-    Items           []Device     `json:"items"`
+    Items           []DeviceResponse              `json:"items"`
 }
 
-func (d *Device) Tenant() (*Tenant, error) {
-    return d.service.client.Tenant.Get()
+// DeviceResponse is a struct representing item create request for API
+type DeviceRequestCreate struct {
+    Custom              map[string]interface{}  `json:"custom,omitempty"`
+    Properties          []DeviceProperty        `json:"properties,omitempty"`
 }
 
-func (d *Device) Product() (*Product, error) {
-    return d.service.client.Products.GetByHref(d.product)
+// DeviceResponse is a struct representing item update request for API
+type DeviceRequestUpdate struct {
+    Custom              map[string]interface{}  `json:"custom,omitempty"`
+    Properties          []DeviceProperty        `json:"properties,omitempty"`
 }
 
-func (d *Device) Clusters() ([]Cluster, *ListParams, error) {
-    return d.service.client.Clusters.ListByHref(d.clusters, nil)
+// TenantLink returns indicator of Tenant expansion and link to tenant.
+// If expansion for Tenant was requested and resource is available via pointer
+// it returns true, otherwise false. Link (href) is always returned. 
+func (d *Device) TenantLink() (bool, string) {
+    return (d.Tenant != nil), d.tenant
 }
 
-func (d *Device) Groups() ([]Group, *ListParams, error) {
-    return d.service.client.Groups.ListByHref(d.groups, nil)
+// ApplicationsLink returns indicator of Device expansion and link to dierctory.
+// If expansion for Device was requested and resource is available via pointer
+// it returns true, otherwise false. Link (href) is always returned. 
+func (d *Device) ProductLink() (bool, string) {
+    return (d.Product != nil), d.product
 }
 
-func (d *Device) ClusterMemberships() ([]ClusterMembership, *ListParams, error) {
-    return d.service.client.ClusterMemberships.ListByHref(d.clusterMemberships, nil)
+// ApplicationsLink returns indicator of Device expansion and link to dierctory.
+// If expansion for Device was requested and resource is available via pointer
+// it returns true, otherwise false. Link (href) is always returned. 
+func (d *Device) ClustersLink() (bool, string) {
+    return (d.Clusters != nil), d.clusters
 }
 
-func (d *Device) GroupMemberships() ([]GroupMembership, *ListParams, error) {
-    return d.service.client.GroupMemberships.ListByHref(d.groupMemberships, nil)
+// ApplicationsLink returns indicator of Device expansion and link to dierctory.
+// If expansion for Device was requested and resource is available via pointer
+// it returns true, otherwise false. Link (href) is always returned. 
+func (d *Device) GroupsLink() (bool, string) {
+    return (d.Groups != nil), d.groups
 }
 
-// Save updates tenant by calling Update() on service under the hood
+// ApplicationsLink returns indicator of Device expansion and link to dierctory.
+// If expansion for Device was requested and resource is available via pointer
+// it returns true, otherwise false. Link (href) is always returned. 
+func (d *Device) ClusterMembershipsLink() (bool, string) {
+    return (d.ClusterMemberships != nil), d.clusterMemberships
+}
+
+// ApplicationsLink returns indicator of Device expansion and link to dierctory.
+// If expansion for Device was requested and resource is available via pointer
+// it returns true, otherwise false. Link (href) is always returned. 
+func (d *Device) GroupMembershipsLink() (bool, string) {
+    return (d.GroupMemberships != nil), d.groupMemberships
+}
+
+// Save is a helper method for updating apikey.
+// It calls UpdateByLink() on service under the hood.
 func (t *Device) Save() error {
-    tmp := *t
-
-    ten, err := t.service.Update(&tmp)
+    tmp := &DeviceRequestUpdate{}
+    copier.Copy(tmp, t)
+    ten, err := t.service.UpdateByLink(t.Href, tmp)
     if err != nil {
         return err
     }
 
+    tmpTenant := t.Tenant
+    tmpProduct := t.Product
+    tmpGroups := t.Groups
+    tmpClusters := t.Clusters
+    tmpGroupMemberships := t.GroupMemberships
+    tmpClusterMemberships := t.ClusterMemberships
+
     *t = *ten
+    t.Tenant = tmpTenant
+    t.Product = tmpProduct
+    t.Groups = tmpGroups
+    t.Clusters = tmpClusters
+    t.GroupMemberships = tmpGroupMemberships
+    t.ClusterMemberships = tmpClusterMemberships
+
     return nil
 }
 
-// GetById retrieves directory
-func (s *DevicesServiceOp) GetById(id string) (*Device, error) {
+// Save is a helper method for deleting apikey.
+// It calls Delete() on service under the hood.
+func (t *Device) Delete() error {
+    err := t.service.Delete(t)
+    if err != nil {
+        return err
+    }
+
+    return nil
+}
+
+// GetById retrieves apikey by its ID
+func (s *DevicesServiceOp) GetById(id string, args ...interface{}) (*Device, error) {
     endpoint := "devices/"
     endpoint = fmt.Sprintf("%s%s", endpoint, id)
 
-    return s.GetByHref(endpoint)
+    return s.GetByLink(endpoint, args...)
 }
 
-func (s *DevicesServiceOp) GetByHref(endpoint string) (*Device, error) {
-    resp, err := s.client.request("GET", endpoint, nil)
+// GetById retrieves apikey by its full link
+func (s *DevicesServiceOp) GetByLink(endpoint string, args ...interface{}) (*Device, error) {
+    resp, err := s.client.request("GET", endpoint, nil, args...)
     if err != nil {
         return nil, err
     }
@@ -112,29 +208,167 @@ func (s *DevicesServiceOp) GetByHref(endpoint string) (*Device, error) {
     if resp.StatusCode != http.StatusOK {
         return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Device{}
+    obj := &DeviceResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
+
+    return s.get(obj)
+}
+
+// get is internal method for transforming DeviceResponse into Device
+func (s *DevicesServiceOp) get(r *DeviceResponse) (*Device, error) {
+    obj := &Device{}
+    copier.Copy(obj, r)
+    if v, ok :=  r.Tenant["href"]; ok {
+        obj.tenant = v.(string)
+    }
+    if v, ok :=  r.Product["href"]; ok {
+        obj.product = v.(string)
+    }
+    if v, ok :=  r.Clusters["href"]; ok {
+        obj.clusters = v.(string)
+    }
+    if v, ok :=  r.Groups["href"]; ok {
+        obj.groups = v.(string)
+    }
+    if v, ok :=  r.ClusterMemberships["href"]; ok {
+        obj.clusterMemberships = v.(string)
+    }
+    if v, ok :=  r.GroupMemberships["href"]; ok {
+        obj.groupMemberships = v.(string)
+    }
+    if len(r.Tenant) > 1 {        
+        bytes, err := json.Marshal(r.Tenant)
+        if err != nil {
+            return nil, err
+        }
+        ten := &TenantResponse{}
+        json.Unmarshal(bytes, ten)
+        t, err := s.client.Tenant.get(ten)
+        if err != nil {
+            return nil, err
+        }
+        obj.Tenant = t
+    }
+    if len(r.Product) > 1 {        
+        bytes, err := json.Marshal(r.Product)
+        if err != nil {
+            return nil, err
+        }
+        ten := &ProductResponse{}
+        json.Unmarshal(bytes, ten)
+        t, err := s.client.Products.get(ten)
+        if err != nil {
+            return nil, err
+        }
+        obj.Product = t
+    }
+    if len(r.Clusters) > 1 {        
+        bytes, err := json.Marshal(r.Clusters)
+        if err != nil {
+            return nil, err
+        }
+        ten := &ClustersResponse{}
+        json.Unmarshal(bytes, ten)
+        t, _, err := s.client.Clusters.getCollection(ten)
+        if err != nil {
+            return nil, err
+        }
+        obj.Clusters = t
+    }
+    if len(r.Groups) > 1 {        
+        bytes, err := json.Marshal(r.Groups)
+        if err != nil {
+            return nil, err
+        }
+        ten := &GroupsResponse{}
+        json.Unmarshal(bytes, ten)
+        t, _, err := s.client.Groups.getCollection(ten)
+        if err != nil {
+            return nil, err
+        }
+        obj.Groups = t
+    }
+    if len(r.ClusterMemberships) > 1 {        
+        bytes, err := json.Marshal(r.ClusterMemberships)
+        if err != nil {
+            return nil, err
+        }
+        ten := &ClusterMembershipsResponse{}
+        json.Unmarshal(bytes, ten)
+        t, _, err := s.client.ClusterMemberships.getCollection(ten)
+        if err != nil {
+            return nil, err
+        }
+        obj.ClusterMemberships = t
+    }
+    if len(r.GroupMemberships) > 1 {        
+        bytes, err := json.Marshal(r.GroupMemberships)
+        if err != nil {
+            return nil, err
+        }
+        ten := &GroupMembershipsResponse{}
+        json.Unmarshal(bytes, ten)
+        t, _, err := s.client.GroupMemberships.getCollection(ten)
+        if err != nil {
+            return nil, err
+        }
+        obj.GroupMemberships = t
+    }
     obj.service = s
     return obj, nil
 }
 
-func (s *DevicesServiceOp) List(lo *ListOptions) ([]Device, *ListParams, error) {
-    endpoint := fmt.Sprintf("tenants/%s/devices", s.client.tenantId)
+// get is internal method for transforming ApplicationResponse into Application
+func (s *DevicesServiceOp) getCollection(r *DevicesResponse) ([]Device, *ListParams, error) {
+    dst := make([]Device, len(r.Items))
 
-    return s.ListByHref(endpoint, lo)
-}
-
-func (s *DevicesServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]Device, *ListParams, error) {
-    if lo == nil {
-        lo = &ListOptions {
-            Page: 1,
-            Limit: DefaultLimit,
+    for i, _ := range r.Items {
+        t, err := s.get(&r.Items[i])
+        if err == nil {
+            dst[i] = *t
         }
     }
-    endpoint = fmt.Sprintf("%s?limit=%d&page=%d", endpoint, lo.Limit, lo.Page)
 
-    resp, err := s.client.request("GET", endpoint, nil)
+    lp := &ListParams {
+        Href: r.Href,
+        Prev: r.Prev,
+        Next: r.Next,
+        Limit: r.Limit,
+        Size: r.Size,
+        Page: r.Page,
+    }
+    return dst, lp, nil
+}
+
+// GetById retrieves collection of devices of current tenant
+func (s *DevicesServiceOp) ListByCluster(id string, args ...interface{}) ([]Device, *ListParams, error) {
+    endpoint := fmt.Sprintf("clusters/%s/devices", id)
+    return s.ListByLink(endpoint, args...)
+}
+
+// GetById retrieves collection of devices of current tenant
+func (s *DevicesServiceOp) ListByApplication(id string, args ...interface{}) ([]Device, *ListParams, error) {
+    endpoint := fmt.Sprintf("applications/%s/devices", id)
+    return s.ListByLink(endpoint, args...)
+}
+
+// GetById retrieves collection of devices of current tenant
+func (s *DevicesServiceOp) ListByGroup(id string, args ...interface{}) ([]Device, *ListParams, error) {
+    endpoint := fmt.Sprintf("groups/%s/devices", id)
+    return s.ListByLink(endpoint, args...)
+}
+
+// GetById retrieves collection of devices of current tenant
+func (s *DevicesServiceOp) ListByProduct(id string, args ...interface{}) ([]Device, *ListParams, error) {
+    endpoint := fmt.Sprintf("products/%s/devices", id)
+    return s.ListByLink(endpoint, args...)
+}
+
+
+// GetById retrieves collection of devices by link
+func (s *DevicesServiceOp) ListByLink(endpoint string, args ...interface{}) ([]Device, *ListParams, error) {
+    resp, err := s.client.request("GET", endpoint, nil, args...)
     if err != nil {
         return nil, nil, err
     }
@@ -144,35 +378,21 @@ func (s *DevicesServiceOp) ListByHref(endpoint string, lo *ListOptions) ([]Devic
     if resp.StatusCode != http.StatusOK {
         return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Devices{}
+    obj := &DevicesResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
 
-    dst := make([]Device, len(obj.Items))
-    copy(dst, obj.Items)
-    for i, _ := range dst {
-        dst[i].service = s
-    }
-
-    lp := &ListParams {
-        Href: obj.Href,
-        Prev: obj.Prev,
-        Next: obj.Next,
-        Limit: obj.Limit,
-        Size: obj.Size,
-        Page: obj.Page,
-    }
-    return dst, lp, nil
+    return s.getCollection(obj)
 }
 
-// Update updates product
-func (s *DevicesServiceOp) Update(t *Device) (*Device, error) {
-    endpoint := t.Href
+// GetById updates apikey with specified ID
+func (s *DevicesServiceOp) UpdateById(id string, t *DeviceRequestUpdate) (*Device, error) {
+    endpoint := fmt.Sprintf("devices/%s", id)
+    return s.UpdateByLink(endpoint, t)
+}
 
-    t.CreatedAt = nil
-    t.UpdatedAt = nil
-    t.Href = ""
-
+// GetById updates apikey specified by link
+func (s *DevicesServiceOp) UpdateByLink(endpoint string, t *DeviceRequestUpdate) (*Device, error) {
     enc, err := json.Marshal(t)
     if err != nil {
         return nil, err
@@ -190,20 +410,19 @@ func (s *DevicesServiceOp) Update(t *Device) (*Device, error) {
     if resp.StatusCode != http.StatusOK {
         return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Device{}
+    obj := &DeviceResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
-    obj.service = s
-    return obj, nil
+    return s.get(obj)
 }
 
-func (s *DevicesServiceOp) Create(dir *Device) (*Device, error) {
-    endpoint := fmt.Sprintf("devices")
+func (s *DevicesServiceOp) CreateByProduct(id string, dir *DeviceRequestCreate) (*Device, error) {
+    endpoint := fmt.Sprintf("products/%s/devices", id)
+    return s.CreateByLink(endpoint, dir)
+}
 
-    dir.CreatedAt = nil
-    dir.UpdatedAt = nil
-    dir.Href = ""
-
+// Create creates new apikey within tenant
+func (s *DevicesServiceOp) CreateByLink(endpoint string, dir *DeviceRequestCreate) (*Device, error) {
     enc, err := json.Marshal(dir)
     if err != nil {
         return nil, err
@@ -221,26 +440,25 @@ func (s *DevicesServiceOp) Create(dir *Device) (*Device, error) {
     if resp.StatusCode != http.StatusCreated {
         return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
     }
-    obj := &Device{}
+    obj := &DeviceResponse{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(obj)
-    obj.service = s
-    return obj, nil
+    return s.get(obj)
 }
 
-// Delete removes application
+// Delete removes apikey
 func (s *DevicesServiceOp) Delete(t *Device) (error) {
-    return s.DeleteByHref(t.Href)
+    return s.DeleteByLink(t.Href)
 }
 
-// Delete removes application by ID
+// Delete removes apikey by ID
 func (s *DevicesServiceOp) DeleteById(id string) (error) {
     endpoint := fmt.Sprintf("devices/%s", id)
-    return s.DeleteByHref(endpoint)
+    return s.DeleteByLink(endpoint)
 }
 
-// Delete removes application by link
-func (s *DevicesServiceOp) DeleteByHref(endpoint string) (error) {
+// Delete removes apikey by link
+func (s *DevicesServiceOp) DeleteByLink(endpoint string) (error) {
     resp, err := s.client.request("DELETE", endpoint, nil)
     if err != nil {
         return err

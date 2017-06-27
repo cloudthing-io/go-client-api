@@ -24,7 +24,7 @@ const (
 
 // Link represents unexpanded link to child/parent resource
 type Link struct{
-    Href             *string         `json:"href,omitempty"`
+    Href             string         `json:"href,omitempty"`
 }
 
 // ModelBase is a base structure for all models in CloudThing API
@@ -72,13 +72,14 @@ type Client struct {
     GroupMemberships GroupMembershipsService 
     Memberships     MembershipsService
     Usergroups      UsergroupsService
+    Exports         ExportsService
 }
 
 // ListOptions specifies the optional parameters for requests with pagination support
 type ListOptions struct {
     // Page of results to retrieve
-    Page        int         `url:"page,omitempty"`
-    Limit       int         `url:"limit,omitempty"`
+    Page        int
+    Limit       int
 }
 
 type ListParams struct {
@@ -88,6 +89,28 @@ type ListParams struct {
     Page            int             `json:"page"`
     Prev            *Link            `json:"prev,omitempty"`
     Next            *Link            `json:"next,omitempty"`
+}
+
+type ExpandParams map[string]*ListOptions
+
+func (l ListOptions) String() string {
+    return fmt.Sprintf("limit=%d&page=%d", l.Limit, l.Page)
+}
+
+func (e ExpandParams) String() string {
+    str := "expand="
+    ind := 0
+    for k, v := range e {
+        if ind != 0 {
+            str = fmt.Sprintf("%s,", str)
+        }
+        str = fmt.Sprintf("%s%s", str, k)
+        if v != nil {
+            str = fmt.Sprintf("%s(limit:%d,page:%d)", str, v.Limit, v.Page)
+        }
+        ind++
+    }
+    return str
 }
 
 const (
@@ -123,6 +146,7 @@ func NewClient(httpClient *http.Client, baseURL string) (*Client, error) {
     c.Memberships = &MembershipsServiceOp{client: c}
     c.Usergroups = &UsergroupsServiceOp{client: c}
     c.Apikeys = &ApikeysServiceOp{client: c}
+    c.Exports = &ExportsServiceOp{client:c}
 
     return c, nil
 }
@@ -135,35 +159,48 @@ func (c *Client) SetUserAgent(ua string) {
 // SetBasicAuth uses provided basic authorization params for authenticating against 
 // CloudThing API and retrieves and stores JWT token if succeeded for future requests.
 func (c *Client) SetBasicAuth(username, password string) error {
+    token, err := c.GetAuthToken(username, password, "")
+    if err == nil {
+        c.setToken(token)
+    }
+    return err
+}
+
+// GetAuthToken uses provided basic authorization params for authenticating against 
+// CloudThing API and retrieves and returns JWT token.
+func (c *Client) GetAuthToken(username, password, application string) (*Token, error) {
     endpoint := "auth/token"
+    if application != "" {
+        endpoint = fmt.Sprintf("%s?application=%s", endpoint, application)
+    }
     endp, err := url.Parse(endpoint)
     if err != nil {
-        return err
+        return nil, err
     }
+    fmt.Println(endpoint)
 
     u := c.BaseURL.ResolveReference(endp)
 
     req, err := http.NewRequest("POST", u.String(), nil)
     if err != nil {
-        return err
+        return nil, err
     }
     req.SetBasicAuth(username, password)
     resp, err := c.client.Do(req)
     if err != nil {
-        return err
+        return nil, err
     }
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return fmt.Errorf("Failed to authenticate user: %d\n", resp.StatusCode)
+        return nil, fmt.Errorf("Failed to authenticate user: %d\n", resp.StatusCode)
     }
 
     token := &Token{}
     dec := json.NewDecoder(resp.Body)
     dec.Decode(token)
 
-    c.setToken(token)
-    return nil
+    return token, nil
 }
 
 // SetTokenAuth uses provided JWT token for authenticating against CloudThing API
@@ -188,21 +225,63 @@ func (c *Client) SetTokenAuth(token *Token) error {
     return nil
 }
 
+func (c *Client) RevokeToken() error {
+    if !c.IsAuthenticated() {
+        return fmt.Errorf("Client is not authenticated")
+    }
+    endpoint := "auth/token"
+    endp, err := url.Parse(endpoint)
+    if err != nil {
+        return err
+    }
+
+    u := c.BaseURL.ResolveReference(endp)
+    req, err := http.NewRequest("DELETE", u.String(), nil)
+    if err != nil {
+        return err
+    }
+    req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.token.Token))
+    resp, err := c.client.Do(req)
+    if err != nil {
+        return err
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusNoContent {
+        return fmt.Errorf("Failed to revoke token: %d\n", resp.StatusCode)
+    }
+
+    return nil
+}
+
 // setToken parses JWT token, extracts tenant ID and sets token and in in client
 func (c *Client) setToken(t *Token) {
     token, _ := jwt.Parse(t.Token, nil)
-    iss := strings.Split(token.Claims["iss"].(string), "/")
+    claims := token.Claims.(jwt.MapClaims)
+    iss := strings.Split(claims["iss"].(string), "/")
     c.tenantId = iss[len(iss)-1]
     c.token = t
 }
 
 // Creates new request or sending to API
-func (c *Client) request(method, endpoint string, body io.Reader) (*http.Response, error) {
+func (c *Client) request(method, endpoint string, body io.Reader, opts ...interface{}) (*http.Response, error) {
     if !c.IsAuthenticated() {
         return nil, fmt.Errorf("You need to authenticate first")
     }
+   
+    params := "?"
+    for _, a := range opts {
+        if v, ok := a.(*ListOptions); ok {
+            params = fmt.Sprintf("%s&%s", params, v.String())
+            continue
+        }
+        if v, ok := a.(*ExpandParams); ok {
+            params = fmt.Sprintf("%s&%s", params, v.String())
+            continue
+        }
+    }
 
-    u, err := url.Parse(endpoint)
+    u, err := url.Parse(fmt.Sprintf("%s%s", endpoint, params ))
     if err != nil {
         return nil, err
     }
@@ -210,6 +289,7 @@ func (c *Client) request(method, endpoint string, body io.Reader) (*http.Respons
     if !u.IsAbs() {
         u = c.BaseURL.ResolveReference(u)
     }
+    fmt.Println(u)
 
     req, err := http.NewRequest(method, u.String(), body)
     if err != nil {
@@ -236,7 +316,8 @@ func (c *Client) IsAuthenticated() bool {
         var vexp bool
         var err error
         now := time.Now().Unix()
-        switch num := t.Claims["exp"].(type) {
+        claims := t.Claims.(jwt.MapClaims)
+        switch num := claims["exp"].(type) {
         case json.Number:
             if exp, err = num.Int64(); err == nil {
                 vexp = true
