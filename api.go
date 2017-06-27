@@ -289,7 +289,6 @@ func (c *Client) request(method, endpoint string, body io.Reader, opts ...interf
     if !u.IsAbs() {
         u = c.BaseURL.ResolveReference(u)
     }
-    fmt.Println(u)
 
     req, err := http.NewRequest(method, u.String(), body)
     if err != nil {
