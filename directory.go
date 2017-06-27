@@ -112,7 +112,6 @@ func (d *Directory) ApplicationsLink() (bool, string) {
     return (d.Applications != nil), d.applications
 }
 
-<<<<<<< HEAD
 // ApplicationsLink returns indicator of Directory expansion and link to dierctory.
 // If expansion for Directory was requested and resource is available via pointer
 // it returns true, otherwise false. Link (href) is always returned. 

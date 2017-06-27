@@ -49,6 +49,16 @@ type User struct {
     LastFailedLogin       *time.Time       `json:"lastFailedLogin,omitempty"`
     Custom          interface{}     `json:"custom,omitempty"`
 
+    // Points to Tenant if expansion was requested, otherwise nil
+    Tenant              *Tenant
+    // Points to Applications if expansion was requested, otherwise nil
+    Directory           *Directory
+    // Points to Tenant if expansion was requested, otherwise nil
+    Applications        []Application
+    Usergroups          []Usergroup
+
+    Memberships     []Membership
+
     tenant          string          `json:"tenant,omitempty"`
     directory       string          `json:"directory,omitempty"`
     applications         string          `json:"applications,omitempty"`
