@@ -13,12 +13,12 @@ import (
 // ResourcesService is an interface for interacting with Resources endpoints of CloudThing API
 // https://tenant-name.cloudthing.io/api/v1/model/id/resources
 type ResourcesService interface {
-	GetDataByDevice(*Device, ...interface{}) ([]DataPoint, *ListParams, error)
-	GetEventsByDevice(*Device, ...interface{}) ([]EventPoint, *ListParams, error)
-	GetCommandsByDevice(*Device, ...interface{}) ([]CommandPoint, *ListParams, error)
-	WriteDataForDevice(*Device, []DataPoint) ([]DataPoint, error)
-	WriteEventsForDevice(*Device, []EventPoint) ([]EventPoint, error)
-	WriteCommandsForDevice(*Device, []CommandPoint) ([]CommandPoint, error)
+	GetDataByDeviceID(string, ...interface{}) ([]DataPoint, *ListParams, error)
+	GetEventsByDeviceID(string, ...interface{}) ([]EventPoint, *ListParams, error)
+	GetCommandsByDeviceID(string, ...interface{}) ([]CommandPoint, *ListParams, error)
+	WriteDataForDeviceID(string, []DataPoint) ([]DataPoint, error)
+	WriteEventsForDeviceID(string, []EventPoint) ([]EventPoint, error)
+	WriteCommandsForDeviceID(string, []CommandPoint) ([]CommandPoint, error)
 }
 
 // ResourcesServiceOp handles communication with Resources related methods of API
@@ -73,9 +73,9 @@ func (t *TimeParams) String() string {
 	return fmt.Sprintf("start=%s&end=%s", t.Start.UTC().Format(time.RFC3339), t.End.UTC().Format(time.RFC3339))
 }
 
-// GetDataByDevice requests from CloudThing device's data with set filters
-func (s *ResourcesServiceOp) GetDataByDevice(device *Device, filters ...interface{}) ([]DataPoint, *ListParams, error) {
-	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/data", device.GetId())
+// GetDataByDeviceID requests from CloudThing device's data with set filters
+func (s *ResourcesServiceOp) GetDataByDeviceID(deviceID string, filters ...interface{}) ([]DataPoint, *ListParams, error) {
+	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/data", deviceID)
 
 	obj := &DataResponse{}
 	err := s.getResourcesByEndpoint(obj, endpoint, filters...)
@@ -85,9 +85,9 @@ func (s *ResourcesServiceOp) GetDataByDevice(device *Device, filters ...interfac
 	return obj.Items, &obj.ListParams, nil
 }
 
-// GetEventsByDevice requests from CloudThing device's events with set filters
-func (s *ResourcesServiceOp) GetEventsByDevice(device *Device, filters ...interface{}) ([]EventPoint, *ListParams, error) {
-	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/events", device.GetId())
+// GetEventsByDeviceID requests from CloudThing device's events with set filters
+func (s *ResourcesServiceOp) GetEventsByDeviceID(deviceID string, filters ...interface{}) ([]EventPoint, *ListParams, error) {
+	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/events", deviceID)
 
 	obj := &EventsResponse{}
 	err := s.getResourcesByEndpoint(obj, endpoint, filters...)
@@ -97,9 +97,9 @@ func (s *ResourcesServiceOp) GetEventsByDevice(device *Device, filters ...interf
 	return obj.Items, &obj.ListParams, nil
 }
 
-// GetCommandsByDevice requests from CloudThing device's commands with set filters
-func (s *ResourcesServiceOp) GetCommandsByDevice(device *Device, filters ...interface{}) ([]CommandPoint, *ListParams, error) {
-	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/commands", device.GetId())
+// GetCommandsByDeviceID requests from CloudThing device's commands with set filters
+func (s *ResourcesServiceOp) GetCommandsByDeviceID(deviceID string, filters ...interface{}) ([]CommandPoint, *ListParams, error) {
+	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/commands", deviceID)
 
 	obj := &CommandsResponse{}
 	err := s.getResourcesByEndpoint(obj, endpoint, filters...)
@@ -109,9 +109,9 @@ func (s *ResourcesServiceOp) GetCommandsByDevice(device *Device, filters ...inte
 	return obj.Items, &obj.ListParams, nil
 }
 
-// WriteDataForDevice sends data to CloudThing device's for saving
-func (s *ResourcesServiceOp) WriteDataForDevice(device *Device, points []DataPoint) ([]DataPoint, error) {
-	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/data", device.GetId())
+// WriteDataForDeviceID sends data to CloudThing device's for saving
+func (s *ResourcesServiceOp) WriteDataForDeviceID(deviceID string, points []DataPoint) ([]DataPoint, error) {
+	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/data", deviceID)
 
 	obj := make([]DataPoint, 0)
 	err := s.writeResourcesByEndpoint(obj, points, endpoint)
@@ -121,9 +121,9 @@ func (s *ResourcesServiceOp) WriteDataForDevice(device *Device, points []DataPoi
 	return obj, nil
 }
 
-// WriteEventsForDevice sends events to CloudThing device's for saving
-func (s *ResourcesServiceOp) WriteEventsForDevice(device *Device, points []EventPoint) ([]EventPoint, error) {
-	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/events", device.GetId())
+// WriteEventsForDeviceID sends events to CloudThing device's for saving
+func (s *ResourcesServiceOp) WriteEventsForDeviceID(deviceID string, points []EventPoint) ([]EventPoint, error) {
+	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/events", deviceID)
 
 	obj := make([]EventPoint, 0)
 	err := s.writeResourcesByEndpoint(obj, points, endpoint)
@@ -133,9 +133,9 @@ func (s *ResourcesServiceOp) WriteEventsForDevice(device *Device, points []Event
 	return obj, nil
 }
 
-// WriteCommandsForDevice sends events to CloudThing device's for saving
-func (s *ResourcesServiceOp) WriteCommandsForDevice(device *Device, points []CommandPoint) ([]CommandPoint, error) {
-	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/commands", device.GetId())
+// WriteCommandsForDeviceID sends events to CloudThing device's for saving
+func (s *ResourcesServiceOp) WriteCommandsForDeviceID(deviceID string, points []CommandPoint) ([]CommandPoint, error) {
+	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/commands", deviceID)
 
 	obj := make([]CommandPoint, 0)
 	err := s.writeResourcesByEndpoint(obj, points, endpoint)
