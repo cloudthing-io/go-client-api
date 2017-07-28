@@ -18,6 +18,7 @@ type UsersService interface {
 	GetByLink(string, ...interface{}) (*User, error)
 	ListByLink(string, ...interface{}) ([]User, *ListParams, error)
 	ListByDirectory(string, ...interface{}) ([]User, *ListParams, error)
+	ListByUsergroup(string, ...interface{}) ([]User, *ListParams, error)
 	CreateByLink(string, *UserRequestCreate) (*User, error)
 	CreateByDirectory(string, *UserRequestCreate) (*User, error)
 	UpdateById(string, *UserRequestUpdate) (*User, error)
@@ -344,6 +345,12 @@ func (s *UsersServiceOp) getCollection(r *UsersResponse) ([]User, *ListParams, e
 // GetById retrieves collection of users of current tenant
 func (s *UsersServiceOp) ListByDirectory(id string, args ...interface{}) ([]User, *ListParams, error) {
 	endpoint := fmt.Sprintf("directories/%s/users", id)
+	return s.ListByLink(endpoint, args...)
+}
+
+// ListByUsergroup retrieves collection of users of current usergroup
+func (s *UsersServiceOp) ListByUsergroup(id string, args ...interface{}) ([]User, *ListParams, error) {
+	endpoint := fmt.Sprintf("usergroups/%s/users", id)
 	return s.ListByLink(endpoint, args...)
 }
 
