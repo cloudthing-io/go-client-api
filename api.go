@@ -74,6 +74,7 @@ type Client struct {
 	Memberships        MembershipsService
 	Usergroups         UsergroupsService
 	Exports            ExportsService
+	Resources          ResourcesService
 }
 
 // ListOptions specifies the optional parameters for requests with pagination support
@@ -156,6 +157,7 @@ func NewClient(httpClient *http.Client, baseURL string) (*Client, error) {
 	c.Usergroups = &UsergroupsServiceOp{client: c}
 	c.Apikeys = &ApikeysServiceOp{client: c}
 	c.Exports = &ExportsServiceOp{client: c}
+	c.Resources = &ResourcesServiceOp{client: c}
 
 	return c, nil
 }
@@ -279,12 +281,19 @@ func (c *Client) request(method, endpoint string, body io.Reader, opts ...interf
 	}
 
 	params := "?"
+	if strings.Contains(endpoint, params) {
+		params = ""
+	}
 	for _, a := range opts {
 		if v, ok := a.(*ListOptions); ok {
 			params = fmt.Sprintf("%s&%s", params, v.String())
 			continue
 		}
 		if v, ok := a.(*ExpandParams); ok {
+			params = fmt.Sprintf("%s&%s", params, v.String())
+			continue
+		}
+		if v, ok := a.(*TimeParams); ok {
 			params = fmt.Sprintf("%s&%s", params, v.String())
 			continue
 		}
