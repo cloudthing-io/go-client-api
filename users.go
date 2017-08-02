@@ -41,15 +41,15 @@ type User struct {
 	// Standard field for all resources
 	ModelBase
 
-	Username            string      `json:"username,omitempty"`
-	Email               string      `json:"email,omitempty"`
-	FirstName           string      `json:"firstName,omitempty"`
-	Surname             string      `json:"surname,omitempty"`
-	Password            string      `json:"password,omitempty"`
-	Activated           bool        `json:"activated,omitempty"`
-	LastSuccessfulLogin *time.Time  `json:"lastSuccessfulLogin,omitempty"`
-	LastFailedLogin     *time.Time  `json:"lastFailedLogin,omitempty"`
-	Custom              interface{} `json:"custom,omitempty"`
+	Username            string                 `json:"username,omitempty"`
+	Email               string                 `json:"email,omitempty"`
+	FirstName           string                 `json:"firstName,omitempty"`
+	Surname             string                 `json:"surname,omitempty"`
+	Password            string                 `json:"password,omitempty"`
+	Activated           bool                   `json:"activated,omitempty"`
+	LastSuccessfulLogin *time.Time             `json:"lastSuccessfulLogin,omitempty"`
+	LastFailedLogin     *time.Time             `json:"lastFailedLogin,omitempty"`
+	Custom              map[string]interface{} `json:"custom,omitempty"`
 
 	// Points to Tenant if expansion was requested, otherwise nil
 	Tenant *Tenant `json:"tenant,omitempty"`
