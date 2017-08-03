@@ -18,6 +18,7 @@ type UsersService interface {
 	GetByLink(string, ...interface{}) (*User, error)
 	ListByLink(string, ...interface{}) ([]User, *ListParams, error)
 	ListByDirectory(string, ...interface{}) ([]User, *ListParams, error)
+	ListByUsergroup(string, ...interface{}) ([]User, *ListParams, error)
 	CreateByLink(string, *UserRequestCreate) (*User, error)
 	CreateByDirectory(string, *UserRequestCreate) (*User, error)
 	UpdateById(string, *UserRequestUpdate) (*User, error)
@@ -40,15 +41,15 @@ type User struct {
 	// Standard field for all resources
 	ModelBase
 
-	Username            string      `json:"username,omitempty"`
-	Email               string      `json:"email,omitempty"`
-	FirstName           string      `json:"firstName,omitempty"`
-	Surname             string      `json:"surname,omitempty"`
-	Password            string      `json:"password,omitempty"`
-	Activated           bool        `json:"activated,omitempty"`
-	LastSuccessfulLogin *time.Time  `json:"lastSuccessfulLogin,omitempty"`
-	LastFailedLogin     *time.Time  `json:"lastFailedLogin,omitempty"`
-	Custom              interface{} `json:"custom,omitempty"`
+	Username            string                 `json:"username,omitempty"`
+	Email               string                 `json:"email,omitempty"`
+	FirstName           string                 `json:"firstName,omitempty"`
+	Surname             string                 `json:"surname,omitempty"`
+	Password            string                 `json:"password,omitempty"`
+	Activated           bool                   `json:"activated,omitempty"`
+	LastSuccessfulLogin *time.Time             `json:"lastSuccessfulLogin,omitempty"`
+	LastFailedLogin     *time.Time             `json:"lastFailedLogin,omitempty"`
+	Custom              map[string]interface{} `json:"custom,omitempty"`
 
 	// Points to Tenant if expansion was requested, otherwise nil
 	Tenant *Tenant `json:"tenant,omitempty"`
@@ -344,6 +345,12 @@ func (s *UsersServiceOp) getCollection(r *UsersResponse) ([]User, *ListParams, e
 // GetById retrieves collection of users of current tenant
 func (s *UsersServiceOp) ListByDirectory(id string, args ...interface{}) ([]User, *ListParams, error) {
 	endpoint := fmt.Sprintf("directories/%s/users", id)
+	return s.ListByLink(endpoint, args...)
+}
+
+// ListByUsergroup retrieves collection of users of current usergroup
+func (s *UsersServiceOp) ListByUsergroup(id string, args ...interface{}) ([]User, *ListParams, error) {
+	endpoint := fmt.Sprintf("usergroups/%s/users", id)
 	return s.ListByLink(endpoint, args...)
 }
 
