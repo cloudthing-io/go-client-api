@@ -89,21 +89,21 @@ func (t *TimeParams) String() string {
 func (s *ResourcesServiceOp) GetDataByDeviceID(deviceID string, filters ...interface{}) ([]DataPoint, *ListParams, error) {
 	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/data", deviceID)
 
-	return s.GetDataByLink(endpoint, filters)
+	return s.GetDataByLink(endpoint, filters...)
 }
 
 // GetEventsByDeviceID requests from CloudThing device's events with set filters
 func (s *ResourcesServiceOp) GetEventsByDeviceID(deviceID string, filters ...interface{}) ([]EventPoint, *ListParams, error) {
 	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/events", deviceID)
 
-	return s.GetEventsByLink(endpoint, filters)
+	return s.GetEventsByLink(endpoint, filters...)
 }
 
 // GetCommandsByDeviceID requests from CloudThing device's commands with set filters
 func (s *ResourcesServiceOp) GetCommandsByDeviceID(deviceID string, filters ...interface{}) ([]CommandPoint, *ListParams, error) {
 	endpoint := fmt.Sprintf("/api/v1/devices/%s/resources/commands", deviceID)
 
-	return s.GetCommandsByLink(endpoint, filters)
+	return s.GetCommandsByLink(endpoint, filters...)
 }
 
 // WriteDataForDeviceID sends data to CloudThing device's for saving
@@ -131,21 +131,21 @@ func (s *ResourcesServiceOp) WriteCommandsForDeviceID(deviceID string, points []
 func (s *ResourcesServiceOp) GetDataByClusterID(clusterID string, filters ...interface{}) ([]DataPoint, *ListParams, error) {
 	endpoint := fmt.Sprintf("/api/v1/clusters/%s/resources/data", clusterID)
 
-	return s.GetDataByLink(endpoint, filters)
+	return s.GetDataByLink(endpoint, filters...)
 }
 
 // GetEventsByClusterID requests from CloudThing cluster's events with set filters
 func (s *ResourcesServiceOp) GetEventsByClusterID(clusterID string, filters ...interface{}) ([]EventPoint, *ListParams, error) {
 	endpoint := fmt.Sprintf("/api/v1/clusters/%s/resources/events", clusterID)
 
-	return s.GetEventsByLink(endpoint, filters)
+	return s.GetEventsByLink(endpoint, filters...)
 }
 
 // GetCommandsByClusterID requests from CloudThing cluster's commands with set filters
 func (s *ResourcesServiceOp) GetCommandsByClusterID(clusterID string, filters ...interface{}) ([]CommandPoint, *ListParams, error) {
 	endpoint := fmt.Sprintf("/api/v1/clusters/%s/resources/commands", clusterID)
 
-	return s.GetCommandsByLink(endpoint, filters)
+	return s.GetCommandsByLink(endpoint, filters...)
 }
 
 // WriteDataForClusterID sends data to CloudThing cluster's for saving
