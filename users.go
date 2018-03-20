@@ -49,6 +49,7 @@ type User struct {
 	Activated           bool                   `json:"activated,omitempty"`
 	LastSuccessfulLogin *time.Time             `json:"lastSuccessfulLogin,omitempty"`
 	LastFailedLogin     *time.Time             `json:"lastFailedLogin,omitempty"`
+	ActivationCode      string                 `json:"activationCode,omitempty"`
 	Custom              map[string]interface{} `json:"custom,omitempty"`
 
 	// Points to Tenant if expansion was requested, otherwise nil
@@ -80,6 +81,7 @@ type UserResponse struct {
 	Surname             string                 `json:"surname,omitempty"`
 	LastSuccessfulLogin *time.Time             `json:"lastSuccessfulLogin,omitempty"`
 	LastFailedLogin     *time.Time             `json:"lastFailedLogin,omitempty"`
+	ActivationCode      string                 `json:"activationCode,omitempty"`
 	Custom              map[string]interface{} `json:"custom,omitempty"`
 
 	Tenant       map[string]interface{} `json:"tenant,omitempty"`
