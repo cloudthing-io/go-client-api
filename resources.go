@@ -237,7 +237,7 @@ func (s *ResourcesServiceOp) getResourcesByEndpoint(responseBody interface{}, en
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("CloudThing API returned non-OK status code: %d", resp.StatusCode)
+		return ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 
 	dec := json.NewDecoder(resp.Body)
@@ -260,7 +260,7 @@ func (s *ResourcesServiceOp) writeResourcesByEndpoint(responseBody interface{}, 
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("CloudThing API returned non-OK status code: %d", resp.StatusCode)
+		return ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	dec := json.NewDecoder(resp.Body)
 	err = dec.Decode(&responseBody)

@@ -204,7 +204,7 @@ func (c *Client) GetAuthToken(username, password, application string) (*Token, e
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Failed to authenticate user: %d\n", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "Failed to authenticate user"}
 	}
 
 	token := &Token{}
@@ -229,7 +229,7 @@ func (c *Client) SetTokenAuth(token *Token) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("Failed to authenticate user: %d\n", resp.StatusCode)
+		return ApiError{StatusCode: resp.StatusCode, Message: "Failed to authenticate user"}
 	}
 
 	c.setToken(token)
@@ -259,7 +259,7 @@ func (c *Client) RevokeToken() error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("Failed to revoke token: %d\n", resp.StatusCode)
+		return ApiError{StatusCode: resp.StatusCode, Message: "Failed to revoke token"}
 	}
 
 	return nil

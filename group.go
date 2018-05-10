@@ -185,7 +185,7 @@ func (s *GroupsServiceOp) GetByLink(endpoint string, args ...interface{}) (*Grou
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &GroupResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -326,7 +326,7 @@ func (s *GroupsServiceOp) ListByLink(endpoint string, args ...interface{}) ([]Gr
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &GroupsResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -358,7 +358,7 @@ func (s *GroupsServiceOp) UpdateByLink(endpoint string, t *GroupRequestUpdate) (
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &GroupResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -388,7 +388,7 @@ func (s *GroupsServiceOp) CreateByLink(endpoint string, dir *GroupRequestCreate)
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusCreated {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &GroupResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -417,7 +417,7 @@ func (s *GroupsServiceOp) DeleteByLink(endpoint string) (error) {
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusNoContent {
-        return fmt.Errorf("Status code: %d", resp.StatusCode)
+        return ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     return nil
 }
