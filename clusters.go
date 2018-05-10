@@ -217,7 +217,7 @@ func (s *ClustersServiceOp) GetByLink(endpoint string, args ...interface{}) (*Cl
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &ClusterResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -358,7 +358,7 @@ func (s *ClustersServiceOp) ListByLink(endpoint string, args ...interface{}) ([]
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &ClustersResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -390,7 +390,7 @@ func (s *ClustersServiceOp) UpdateByLink(endpoint string, t *ClusterRequestUpdat
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &ClusterResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -420,7 +420,7 @@ func (s *ClustersServiceOp) CreateByLink(endpoint string, dir *ClusterRequestCre
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &ClusterResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -449,7 +449,7 @@ func (s *ClustersServiceOp) DeleteByLink(endpoint string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("Status code: %d", resp.StatusCode)
+		return ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	return nil
 }

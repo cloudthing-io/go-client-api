@@ -234,7 +234,7 @@ func (s *DevicesServiceOp) GetByLink(endpoint string, args ...interface{}) (*Dev
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &DeviceResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -403,7 +403,7 @@ func (s *DevicesServiceOp) ListByLink(endpoint string, args ...interface{}) ([]D
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &DevicesResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -435,7 +435,7 @@ func (s *DevicesServiceOp) UpdateByLink(endpoint string, t *DeviceRequestUpdate)
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &DeviceResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -465,7 +465,7 @@ func (s *DevicesServiceOp) CreateByLink(endpoint string, dir *DeviceRequestCreat
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &DeviceResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -494,7 +494,7 @@ func (s *DevicesServiceOp) DeleteByLink(endpoint string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("Status code: %d", resp.StatusCode)
+		return ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	return nil
 }

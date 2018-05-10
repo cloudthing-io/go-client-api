@@ -211,10 +211,10 @@ func (s *UsersServiceOp) GetCurrent(args ...interface{}) (*User, error) {
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+			return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 		}
 	} else if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	user := &UserResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -240,7 +240,7 @@ func (s *UsersServiceOp) GetByLink(endpoint string, args ...interface{}) (*User,
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &UserResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -368,7 +368,7 @@ func (s *UsersServiceOp) ListByLink(endpoint string, args ...interface{}) ([]Use
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &UsersResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -400,7 +400,7 @@ func (s *UsersServiceOp) UpdateByLink(endpoint string, t *UserRequestUpdate) (*U
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &UserResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -430,7 +430,7 @@ func (s *UsersServiceOp) CreateByLink(endpoint string, dir *UserRequestCreate) (
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	obj := &UserResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -459,7 +459,7 @@ func (s *UsersServiceOp) DeleteByLink(endpoint string) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("Status code: %d", resp.StatusCode)
+		return ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	return nil
 }
