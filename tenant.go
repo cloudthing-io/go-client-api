@@ -127,10 +127,10 @@ func (s *TenantServiceOp) Get() (*Tenant, error) {
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+			return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 		}
 	} else if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	tenant := &TenantResponse{}
 	dec := json.NewDecoder(resp.Body)
@@ -162,7 +162,7 @@ func (s *TenantServiceOp) UpdateByLink(endpoint string, t *TenantRequestUpdate) 
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+		return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
 	}
 	tenant := &Tenant{}
 	dec := json.NewDecoder(resp.Body)

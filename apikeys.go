@@ -2,8 +2,8 @@ package api
 
 import (
     "bytes"
-    "encoding/json" 
-    "fmt"   
+    "encoding/json"
+    "fmt"
     "net/http"
     _"strings"
     "github.com/borystomala/copier"
@@ -43,7 +43,7 @@ type Apikey struct {
     // Apikey status, may be ENABLED or DISABLED
     Status          string
     // Key
-    Key             string 
+    Key             string
     // Secret
     Secret          string
     // Field for tenant's custom data
@@ -161,7 +161,7 @@ func (s *ApikeysServiceOp) GetByLink(endpoint string, args ...interface{}) (*Api
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &ApikeyResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -181,7 +181,7 @@ func (s *ApikeysServiceOp) get(r *ApikeyResponse) (*Apikey, error) {
         obj.applications = v.(string)
     }
 
-    if len(r.Tenant) > 1 {        
+    if len(r.Tenant) > 1 {
         bytes, err := json.Marshal(r.Tenant)
         if err != nil {
             return nil, err
@@ -194,7 +194,7 @@ func (s *ApikeysServiceOp) get(r *ApikeyResponse) (*Apikey, error) {
         }
         obj.Tenant = t
     }
-   if len(r.Applications) > 1 {        
+   if len(r.Applications) > 1 {
         bytes, err := json.Marshal(r.Applications)
         if err != nil {
             return nil, err
@@ -249,7 +249,7 @@ func (s *ApikeysServiceOp) ListByLink(endpoint string, args ...interface{}) ([]A
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &ApikeysResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -281,7 +281,7 @@ func (s *ApikeysServiceOp) UpdateByLink(endpoint string, t *ApikeyRequestUpdate)
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &ApikeyResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -308,7 +308,7 @@ func (s *ApikeysServiceOp) Create(dir *ApikeyRequestCreate) (*Apikey, error) {
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusCreated {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &ApikeyResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -337,7 +337,7 @@ func (s *ApikeysServiceOp) DeleteByLink(endpoint string) (error) {
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusNoContent {
-        return fmt.Errorf("Status code: %d", resp.StatusCode)
+        return ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     return nil
 }

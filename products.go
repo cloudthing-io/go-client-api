@@ -185,7 +185,7 @@ func (s *ProductsServiceOp) GetByLink(endpoint string, args ...interface{}) (*Pr
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &ProductResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -272,7 +272,7 @@ func (s *ProductsServiceOp) ListByLink(endpoint string, args ...interface{}) ([]
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &ProductsResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -304,7 +304,7 @@ func (s *ProductsServiceOp) UpdateByLink(endpoint string, t *ProductRequestUpdat
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &ProductResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -331,7 +331,7 @@ func (s *ProductsServiceOp) Create(dir *ProductRequestCreate) (*Product, error) 
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusCreated {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &ProductResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -360,7 +360,7 @@ func (s *ProductsServiceOp) DeleteByLink(endpoint string) (error) {
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusNoContent {
-        return fmt.Errorf("Status code: %d", resp.StatusCode)
+        return ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     return nil
 }

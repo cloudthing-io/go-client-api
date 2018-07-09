@@ -112,7 +112,7 @@ func (s *MembershipsServiceOp) GetByLink(endpoint string, args ...interface{}) (
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &MembershipResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -205,7 +205,7 @@ func (s *MembershipsServiceOp) ListByLink(endpoint string, args ...interface{}) 
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &MembershipsResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -241,7 +241,7 @@ func (s *MembershipsServiceOp) CreateByLink(endpoint string, dir *MembershipRequ
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusCreated {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &MembershipResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -270,7 +270,7 @@ func (s *MembershipsServiceOp) DeleteByLink(endpoint string) (error) {
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusNoContent {
-        return fmt.Errorf("Status code: %d", resp.StatusCode)
+        return ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     return nil
 }

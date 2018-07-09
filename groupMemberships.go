@@ -112,7 +112,7 @@ func (s *GroupMembershipsServiceOp) GetByLink(endpoint string, args ...interface
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &GroupMembershipResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -205,7 +205,7 @@ func (s *GroupMembershipsServiceOp) ListByLink(endpoint string, args ...interfac
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusOK {
-        return nil, nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &GroupMembershipsResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -241,7 +241,7 @@ func (s *GroupMembershipsServiceOp) CreateByLink(endpoint string, dir *GroupMemb
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusCreated {
-        return nil, fmt.Errorf("Status code: %d", resp.StatusCode)
+        return nil, ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     obj := &GroupMembershipResponse{}
     dec := json.NewDecoder(resp.Body)
@@ -270,7 +270,7 @@ func (s *GroupMembershipsServiceOp) DeleteByLink(endpoint string) (error) {
     defer resp.Body.Close()
 
     if resp.StatusCode != http.StatusNoContent {
-        return fmt.Errorf("Status code: %d", resp.StatusCode)
+        return ApiError{StatusCode: resp.StatusCode, Message: "non-ok status returned"}
     }
     return nil
 }
