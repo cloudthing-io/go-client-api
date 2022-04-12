@@ -110,13 +110,15 @@ type UserRequestCreate struct {
 
 // UserResponse is a struct representing item update request for API
 type UserRequestUpdate struct {
-	Username  string                 `json:"username,omitempty"`
-	Email     string                 `json:"email,omitempty"`
-	FirstName string                 `json:"firstName,omitempty"`
-	Surname   string                 `json:"surname,omitempty"`
-	Password  string                 `json:"password,omitempty"`
-	Activated bool                   `json:"activated,omitempty"`
-	Custom    map[string]interface{} `json:"custom,omitempty"`
+	Username       string                 `json:"username,omitempty"`
+	Email          string                 `json:"email,omitempty"`
+	FirstName      string                 `json:"firstName,omitempty"`
+	Surname        string                 `json:"surname,omitempty"`
+	Password       string                 `json:"password,omitempty"`
+	Activated      bool                   `json:"activated,omitempty"`
+	ActivationCode string                 `json:"activationCode"`
+	ActivationTime time.Time              `json:"activationTime"`
+	Custom         map[string]interface{} `json:"custom,omitempty"`
 }
 
 // TenantLink returns indicator of Tenant expansion and link to tenant.
