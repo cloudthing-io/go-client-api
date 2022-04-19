@@ -117,7 +117,7 @@ type UserRequestUpdate struct {
 	Password       string                 `json:"password,omitempty"`
 	Activated      bool                   `json:"activated,omitempty"`
 	ActivationCode string                 `json:"activationCode,omitempty"`
-	ActivationTime time.Time              `json:"activationTime,omitempty"`
+	ActivationTime *time.Time             `json:"activationTime,omitempty"`
 	Custom         map[string]interface{} `json:"custom,omitempty"`
 }
 
